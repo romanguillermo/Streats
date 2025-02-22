@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
+import Colors from '../constants/colors'
 
 export default function LocationPermission() {
   const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | null>(null);
@@ -19,7 +20,7 @@ export default function LocationPermission() {
             const { status } = await Location.getForegroundPermissionsAsync();
             setPermissionStatus(status)
             if (status === 'granted') {
-                router.replace('/(tabs)');
+                router.replace('/');
             }
         }
         checkPermission();
@@ -34,7 +35,7 @@ export default function LocationPermission() {
 
       if (status === 'granted') {
         // Navigate to the main map screen (adjust the route as needed)
-        router.replace('/(tabs)');
+        router.replace('/');
       } else {
         Alert.alert(
           'Permission Denied',
@@ -77,7 +78,7 @@ export default function LocationPermission() {
 
     {/*Optional Skip Feature, as per proposal*/}
       <TouchableOpacity
-        onPress={() => {router.replace('/(tabs)')}}
+        onPress={() => {router.replace('/')}}
       >
           <Text style={styles.skipText}>
             Skip
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: Colors.primary,
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,

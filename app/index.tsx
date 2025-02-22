@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View, Image, Text, TouchableOpacity } from 'react-native';
 import { Link } from 'expo-router';
+import { ColorProperties } from 'react-native-reanimated/lib/typescript/Colors';
+import Colors from '../constants/colors';
 
 export default function WelcomeScreen() {
   return (
@@ -45,7 +47,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   nextButton: {
-    backgroundColor: '#0a7ea4', // Your brand color
+    backgroundColor: Colors.primary,
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,

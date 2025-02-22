@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import Colors from '../constants/colors';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true); // Toggle between login and signup
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   button: {
-    backgroundColor: '#0a7ea4',
+    backgroundColor: Colors.primary,
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
