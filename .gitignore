@@ -3,6 +3,8 @@
 *.log
 .vscode/
 
+config/firebaseConfig.ts
+
 # dependencies
 node_modules/
 

@@ -7,17 +7,32 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert
 } from 'react-native';
 import { Link } from 'expo-router';
-import Colors from '../constants/colors'
+import Colors from '../constants/colors';
+import { auth } from '../config/firebaseConfig';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
 
-  const handleResetPassword = () => {
-    // Placeholder for password reset logic
-    console.log('Requesting password reset for:', email);
-    // TODO: Call API to send password reset email
+  const handleResetPassword = async () => {
+    try {
+      await auth.sendPasswordResetEmail(email);
+      Alert.alert('Password Reset Email Sent', 'Please check your email to reset your password.');
+    // navigate back to login screen ?
+    // router.replace('/auth');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      // Error handling
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('User Not Found', 'No user found with this email.');
+      } else {
+        Alert.alert('Password Reset Error', error.message);
+      }
+    }
   };
 
   return (
@@ -98,7 +113,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   backToLoginText: {
-    color: '#0a7ea4',
+    color: '#000',
     textAlign: 'center',
   },
 });

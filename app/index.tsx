@@ -12,9 +12,9 @@ export default function WelcomeScreen() {
         style={styles.logo}
       />
       <Text style={styles.welcomeText}>Welcome</Text>
-      <Text style={styles.discoverText}>Discover Vendors</Text>
+      <Text style={styles.discoverText}>Discover Local Street Food</Text>
 
-      {/* Use Link from expo-router for navigation */}
+      {/* Next Button */}
       <Link href="/auth" asChild>
         <TouchableOpacity style={styles.nextButton}>
           <Text style={styles.nextButtonText}>→</Text>
@@ -29,12 +29,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF', // Or your desired background color
+    backgroundColor: '#FFFFFF',
   },
   logo: {
     width: 200, // Adjust as needed
     height: 200, // Adjust as needed
-    resizeMode: 'contain', // Important for image scaling
+    resizeMode: 'contain', // Image scaling
     marginBottom: 30,
   },
   welcomeText: {
@@ -55,5 +55,6 @@ const styles = StyleSheet.create({
   nextButtonText: {
     color: '#FFFFFF',
     fontSize: 24,
+    paddingBottom: 4,
   },
 });

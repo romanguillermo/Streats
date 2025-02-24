@@ -7,32 +7,58 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import { auth } from '../config/firebaseConfig';
 import Colors from '../constants/colors';
 
 export default function AuthScreen() {
-  const [isLogin, setIsLogin] = useState(true); // Toggle between login and signup
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState(''); // Only used for signup
+  const [name, setName] = useState('');
 
-  const handleAuth = () => {
-    // Placeholder for authentication logic
-    if (isLogin) {
-      // Handle login (e.g., call API, validate credentials)
-      console.log('Logging in with:', email, password);
-      router.replace('/location-permission'); // Navigate after login
-      // TODO: Navigate to the map screen on successful login
-    } else {
-      // Handle signup (e.g., call API, create user)
-      console.log('Signing up with:', email, password, username);
-      // TODO: Navigate to the map screen on successful signup
-      router.replace('/location-permission'); // Navigate after login
+  const handleAuth = async () => {
+    try {
+      if (isLogin) {
+        // Login
+        await auth.signInWithEmailAndPassword(email, password);
+        router.replace('/location-permission');
+      } else {
+        // Signup
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        // Set the user's display name
+        if (userCredential.user) {
+          await userCredential.user.updateProfile({ displayName: name }); // Use name state
+        }
+        router.replace('/location-permission');
+      }
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      // Error handling
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      } else if (error.code === 'auth/wrong-password') {
+        Alert.alert('Incorrect Password', 'Please double-check your password.');
+      } else if (error.code === 'auth/missing-password') {
+        Alert.alert('Missing Password', 'Please enter a password.');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('User Not Found', 'No user found with this email.');
+      } else if (error.code == 'auth/invalid-credential') {
+        Alert.alert('Invalid Credentials', 'Please check your email and password.');
+      } else if (error.code === 'auth/email-already-in-use') {
+        Alert.alert('Email Already in Use', 'This email is already registered.');
+      } else if (error.code === 'auth/weak-password') {
+        Alert.alert('Weak Password', 'Password should be at least 6 characters.');
+      }
+       else {
+        Alert.alert('Authentication Error', error.message);
+      }
     }
   };
 
-  return (
+    return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
@@ -40,26 +66,26 @@ export default function AuthScreen() {
       <View style={styles.formContainer}>
         <Text style={styles.title}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
 
+        {/* Name Input */}
+        {!isLogin && (
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+          />
+        )}
+
         {/* Email Input */}
         <TextInput
           style={styles.input}
-          placeholder="Email or Username"
+          placeholder="Email"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
         />
-
-        {/* Username Input (only for signup) */}
-        {!isLogin && (
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-          />
-        )}
 
         {/* Password Input */}
         <TextInput
@@ -76,9 +102,9 @@ export default function AuthScreen() {
           <Text style={styles.buttonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
         </TouchableOpacity>
 
-        {/* Toggle between Login and Signup */}
+        {/* Login and Signup */}
         <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-          <Text style={styles.toggleText}>
+          <Text style={styles.linkText}>
             {isLogin ? 'Need an account? Sign Up' : 'Have an account? Log In'}
           </Text>
         </TouchableOpacity>
@@ -87,7 +113,7 @@ export default function AuthScreen() {
         {isLogin && (
           <Link href="/forgot-password" asChild>
             <TouchableOpacity>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.linkText}>Forgot Password?</Text>
             </TouchableOpacity>
           </Link>
         )}
@@ -105,7 +131,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '80%',
-    maxWidth: 400, // Limit width on larger screens
+    maxWidth: 400,
   },
   title: {
     fontSize: 24,
@@ -131,13 +157,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
-  toggleText: {
-    color: '#0a7ea4',
+  linkText: {
+    color: "#000",
     textAlign: 'center',
     marginBottom: 10,
-  },
-  forgotPasswordText: {
-    color: '#0a7ea4',
-    textAlign: 'center',
-  },
+  }
 });
