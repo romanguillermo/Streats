@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,24 +8,42 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { auth } from '../config/firebaseConfig';
 import Colors from '../constants/colors';
 import * as Location from 'expo-location';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is already signed in, redirect to location-permission
+        router.replace('/location-permission');
+      }
+    });
+
+    return unsubscribe; // Cleanup subscription on unmount
+  }, []);
 
   const handleAuth = async () => {
     try {
+      setLoading(true);
+
       if (isLogin) {
         // Login
         await auth.signInWithEmailAndPassword(email, password);
-        console.log('Navigating to / after authentication');
+        console.log('Logged in successfully');
         router.replace('/location-permission');
       } else {
         // Signup
@@ -53,14 +71,15 @@ export default function AuthScreen() {
         Alert.alert('Email Already in Use', 'This email is already registered.');
       } else if (error.code === 'auth/weak-password') {
         Alert.alert('Weak Password', 'Password should be at least 6 characters.');
-      }
-       else {
+      } else {
         Alert.alert('Authentication Error', error.message);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-    return (
+  return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
@@ -68,7 +87,7 @@ export default function AuthScreen() {
       <View style={styles.formContainer}>
         <Text style={styles.title}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
 
-        {/* Name Input */}
+        {/* Name Input - Only for signup */}
         {!isLogin && (
           <TextInput
             style={styles.input}
@@ -89,22 +108,42 @@ export default function AuthScreen() {
           autoCapitalize="none"
         />
 
-        {/* Password Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-        />
+        {/* Password Input with visibility toggle */}
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!passwordVisible}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity 
+            style={styles.eyeIcon} 
+            onPress={() => setPasswordVisible(!passwordVisible)}
+          >
+            <FontAwesome 
+              name={passwordVisible ? "eye" : "eye-slash"} 
+              size={20} 
+              color="#888" 
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* Login/Signup Button */}
-        <TouchableOpacity style={styles.button} onPress={handleAuth}>
-          <Text style={styles.buttonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleAuth}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>{isLogin ? 'Log In' : 'Sign Up'}</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Login and Signup */}
+        {/* Toggle between Login and Signup */}
         <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
           <Text style={styles.linkText}>
             {isLogin ? 'Need an account? Sign Up' : 'Have an account? Log In'}
@@ -120,7 +159,7 @@ export default function AuthScreen() {
           </Link>
         )}
       </View>
-      </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -153,6 +192,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 25,
     marginBottom: 15,
+    alignItems: 'center',
+  },
+  buttonDisabled: {
+    backgroundColor: '#cccccc',
   },
   buttonText: {
     color: '#FFFFFF',
@@ -163,5 +206,23 @@ const styles = StyleSheet.create({
     color: "#000",
     textAlign: 'center',
     marginBottom: 10,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F2',
+    borderRadius: 25,
+    marginBottom: 15,
+    position: 'relative',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+  },
+  eyeIcon: {
+    padding: 10,
+    position: 'absolute',
+    right: 10,
   }
 });

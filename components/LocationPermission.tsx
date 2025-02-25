@@ -5,27 +5,47 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
+import { auth } from '../config/firebaseConfig';
 import Colors from '../constants/colors'
 
 export default function LocationPermission() {
   const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-    useEffect(() => {
-        //Check if the user already granted permissions, and if so re-direct
-        const checkPermission = async () => {
-            const { status } = await Location.getForegroundPermissionsAsync();
-            setPermissionStatus(status)
-            if (status === 'granted') {
-                router.replace('/tabs');
-            }
+  useEffect(() => {
+    // Check if the user is authenticated
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        // User is not authenticated, redirect to auth screen
+        router.replace('/auth');
+      }
+    });
+
+    // Check if the user already granted permissions
+    const checkPermission = async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        setPermissionStatus(status);
+        
+        if (status === 'granted') {
+          router.replace('/tabs');
         }
-        checkPermission();
-    }, [])
-
+      } catch (error) {
+        console.error('Error checking permission:', error);
+      } finally {
+        setChecking(false);
+      }
+    };
+    
+    checkPermission();
+    
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
 
   const requestPermission = async () => {
     setLoading(true);
@@ -39,7 +59,7 @@ export default function LocationPermission() {
       } else {
         Alert.alert(
           'Permission Denied',
-          'Location permission is required to use this app. Please enable it in your settings.',
+          'Location permission is required to find nearby food vendors. Please enable it in your settings.',
           [{ text: 'OK' }]
         );
       }
@@ -54,6 +74,15 @@ export default function LocationPermission() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.message}>Checking permissions...</Text>
+      </View>
+    );
+  }
 
   if (permissionStatus === 'granted') {
     return null; // Or a loading indicator if you prefer
@@ -76,7 +105,7 @@ export default function LocationPermission() {
         </Text>
       </TouchableOpacity>
 
-    {/*Skip Feature*/}
+      {/* Skip Feature */}
       <TouchableOpacity
         onPress={() => {router.replace('/tabs')}}
       >
@@ -122,9 +151,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: 'bold',
   },
-    skipText: {
-      color: '#0a7ea4',
-      textAlign: 'center',
-      marginBottom: 10,
-    },
+  skipText: {
+    color: '#0a7ea4',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
 });
