@@ -20,7 +20,7 @@ export default function LocationPermission() {
             const { status } = await Location.getForegroundPermissionsAsync();
             setPermissionStatus(status)
             if (status === 'granted') {
-                router.replace('/');
+                router.replace('/tabs');
             }
         }
         checkPermission();
@@ -34,8 +34,8 @@ export default function LocationPermission() {
       setPermissionStatus(status);
 
       if (status === 'granted') {
-        // Navigate to the main map screen (adjust the route as needed)
-        router.replace('/');
+        // Navigate to the main map screen
+        router.replace('/tabs');
       } else {
         Alert.alert(
           'Permission Denied',
@@ -76,9 +76,9 @@ export default function LocationPermission() {
         </Text>
       </TouchableOpacity>
 
-    {/*Optional Skip Feature, as per proposal*/}
+    {/*Skip Feature*/}
       <TouchableOpacity
-        onPress={() => {router.replace('/')}}
+        onPress={() => {router.replace('/tabs')}}
       >
           <Text style={styles.skipText}>
             Skip

@@ -12,6 +12,7 @@ import {
 import { Link, router } from 'expo-router';
 import { auth } from '../config/firebaseConfig';
 import Colors from '../constants/colors';
+import * as Location from 'expo-location';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,13 +25,14 @@ export default function AuthScreen() {
       if (isLogin) {
         // Login
         await auth.signInWithEmailAndPassword(email, password);
+        console.log('Navigating to / after authentication');
         router.replace('/location-permission');
       } else {
         // Signup
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         // Set the user's display name
         if (userCredential.user) {
-          await userCredential.user.updateProfile({ displayName: name }); // Use name state
+          await userCredential.user.updateProfile({ displayName: name });
         }
         router.replace('/location-permission');
       }

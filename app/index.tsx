@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Image, Text, TouchableOpacity } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, Stack } from 'expo-router';
 import { ColorProperties } from 'react-native-reanimated/lib/typescript/Colors';
 import Colors from '../constants/colors';
 
