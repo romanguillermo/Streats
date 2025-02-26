@@ -8,7 +8,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/TempLogo.png')} // Replace with your actual logo
+        source={require('../assets/images/TempLogo.png')}
         style={styles.logo}
       />
       <Text style={styles.welcomeText}>Welcome</Text>

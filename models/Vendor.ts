@@ -1,5 +1,3 @@
-// File: models/Vendor.ts
-
 export interface Vendor {
     id: string;
     name: string;
@@ -58,7 +56,7 @@ export interface Vendor {
     twitter?: string;
   }
   
-  // Sample data - this would come from Firebase in the real app
+  // Sample data
   export const sampleVendors: Vendor[] = [
     {
       id: '1',
@@ -209,7 +207,7 @@ export interface Vendor {
   // Helper function to check if a vendor is currently open
   export function isVendorOpen(vendor: Vendor): boolean {
     const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'lowercase' }) as keyof OperatingHours;
+    const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as keyof OperatingHours;
     const currentHours = vendor.operatingHours[day];
     
     if (!currentHours) return false;
@@ -227,7 +225,7 @@ export interface Vendor {
   // Helper function to get a formatted string of today's hours
   export function getTodayHours(vendor: Vendor): string {
     const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'lowercase' }) as keyof OperatingHours;
+    const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as keyof OperatingHours;
     const currentHours = vendor.operatingHours[day];
     
     if (!currentHours) return 'Closed today';

@@ -30,7 +30,7 @@ export default function TabLayout() {
       
       {/* Adding placeholder for upcoming vendor list tab */}
       <Tabs.Screen
-        name="vendors" // You'll need to create this screen file
+        name="vendors"
         options={{
           title: 'Vendors',
           headerShown: false,
@@ -46,7 +46,7 @@ export default function TabLayout() {
       
       {/* Adding placeholder for user profile tab */}
       <Tabs.Screen
-        name="profile" // You'll need to create this screen file
+        name="profile"
         options={{
           title: 'Profile',
           headerShown: false,

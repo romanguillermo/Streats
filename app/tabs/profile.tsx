@@ -1,5 +1,3 @@
-// File: app/tabs/profile.tsx
-
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import { auth } from '../../config/firebaseConfig';
