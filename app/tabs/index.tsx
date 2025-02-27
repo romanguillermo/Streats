@@ -15,6 +15,7 @@ import {
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Colors from '../../constants/colors';
 import { sampleVendors, Vendor, isVendorOpen, getTodayHours } from '../../models/Vendor';
 
@@ -41,7 +42,7 @@ export default function MapScreen() {
     cuisineTypes: [],
     minRating: 0
   });
-
+  const router = useRouter();
   const mapRef = useRef<MapView>(null);
 
   // Get all unique cuisine types from vendors
@@ -336,7 +337,7 @@ export default function MapScreen() {
             </Text>
           </View>
           
-          <TouchableOpacity style={styles.vendorDetailsButton}>
+          <TouchableOpacity style={styles.vendorDetailsButton} onPress={() => router.push(`/vendor-details?id=${selectedVendor.id}`)}>
             <Text style={styles.vendorDetailsText}>View Menu & Details</Text>
           </TouchableOpacity>
         </View>

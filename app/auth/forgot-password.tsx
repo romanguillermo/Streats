@@ -10,8 +10,8 @@ import {
   Alert
 } from 'react-native';
 import { Link } from 'expo-router';
-import Colors from '../constants/colors';
-import { auth } from '../config/firebaseConfig';
+import Colors from '../../constants/colors';
+import { auth } from '../../config/firebaseConfig';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -62,7 +62,7 @@ export default function ForgotPasswordScreen() {
         </TouchableOpacity>
 
         {/* Back to Login Link */}
-        <Link href="/auth" asChild>
+        <Link href="/auth/auth" asChild>
           <TouchableOpacity>
             <Text style={styles.backToLoginText}>Back to Login</Text>
           </TouchableOpacity>

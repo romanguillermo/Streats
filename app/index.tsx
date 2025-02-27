@@ -15,7 +15,7 @@ export default function WelcomeScreen() {
       <Text style={styles.discoverText}>Discover Local Street Food</Text>
 
       {/* Next Button */}
-      <Link href="/auth" asChild>
+      <Link href="/auth/auth" asChild>
         <TouchableOpacity style={styles.nextButton}>
           <Text style={styles.nextButtonText}>→</Text>
         </TouchableOpacity>

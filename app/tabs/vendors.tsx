@@ -1,5 +1,3 @@
-// File: app/tabs/vendors.tsx
-
 import React from 'react';
 import { StyleSheet, View, Text, FlatList } from 'react-native';
 import Colors from '../../constants/colors';

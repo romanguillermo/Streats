@@ -191,11 +191,11 @@ export interface Vendor {
         },
       ],
       operatingHours: {
-        wednesday: { open: '11:00', close: '20:00' },
-        thursday: { open: '11:00', close: '20:00' },
-        friday: { open: '11:00', close: '22:00' },
-        saturday: { open: '11:00', close: '22:00' },
-        sunday: { open: '11:00', close: '19:00' },
+        wednesday: { open: '11:00', close: '8:00' },
+        thursday: { open: '11:00', close: '8:00' },
+        friday: { open: '11:00', close: '10:00' },
+        saturday: { open: '11:00', close: '11:00' },
+        sunday: { open: '11:00', close: '10:00' },
       },
       contactInfo: {
         phone: '555-456-7890',
@@ -207,7 +207,21 @@ export interface Vendor {
   // Helper function to check if a vendor is currently open
   export function isVendorOpen(vendor: Vendor): boolean {
     const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as keyof OperatingHours;
+    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    
+    // Convert the day name to the property name in our OperatingHours interface
+    let day: keyof OperatingHours;
+    switch(dayName) {
+      case 'monday': day = 'monday'; break;
+      case 'tuesday': day = 'tuesday'; break;
+      case 'wednesday': day = 'wednesday'; break;
+      case 'thursday': day = 'thursday'; break;
+      case 'friday': day = 'friday'; break;
+      case 'saturday': day = 'saturday'; break;
+      case 'sunday': day = 'sunday'; break;
+      default: day = 'monday'; // fallback
+    }
+
     const currentHours = vendor.operatingHours[day];
     
     if (!currentHours) return false;
@@ -225,7 +239,21 @@ export interface Vendor {
   // Helper function to get a formatted string of today's hours
   export function getTodayHours(vendor: Vendor): string {
     const now = new Date();
-    const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase() as keyof OperatingHours;
+    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    
+    // Convert the day name to the property name in our OperatingHours interface
+    let day: keyof OperatingHours;
+    switch(dayName) {
+      case 'monday': day = 'monday'; break;
+      case 'tuesday': day = 'tuesday'; break;
+      case 'wednesday': day = 'wednesday'; break;
+      case 'thursday': day = 'thursday'; break;
+      case 'friday': day = 'friday'; break;
+      case 'saturday': day = 'saturday'; break;
+      case 'sunday': day = 'sunday'; break;
+      default: day = 'monday'; // fallback
+    }
+    
     const currentHours = vendor.operatingHours[day];
     
     if (!currentHours) return 'Closed today';

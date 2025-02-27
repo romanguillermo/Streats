@@ -11,8 +11,8 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { auth } from '../config/firebaseConfig';
-import Colors from '../constants/colors';
+import { auth } from '../../config/firebaseConfig';
+import Colors from '../../constants/colors';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 
@@ -152,7 +152,7 @@ export default function AuthScreen() {
 
         {/* "Forgot Password?" Link (only for login) */}
         {isLogin && (
-          <Link href="/forgot-password" asChild>
+          <Link href="/auth/forgot-password" asChild>
             <TouchableOpacity>
               <Text style={styles.linkText}>Forgot Password?</Text>
             </TouchableOpacity>
