@@ -9,6 +9,7 @@ import { User as FirebaseUser } from 'firebase/auth';
 import { router } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { FavoritesProvider } from '../context/FavoritesContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -44,15 +45,17 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="location-permission" options={{ headerShown: false }} />
-        <Stack.Screen name="vendor-details" options={{ headerShown: true, title: "Vendor Details" }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <FavoritesProvider>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
+          <Stack.Screen name="location-permission" options={{ headerShown: false }} />
+          <Stack.Screen name="vendor-details" options={{ headerShown: true, title: "Vendor Details" }} />
+          <Stack.Screen name="tabs" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </FavoritesProvider>
     </SafeAreaProvider>
   );
 }

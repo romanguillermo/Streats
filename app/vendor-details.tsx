@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
+import { useFavorites } from '../context/FavoritesContext';
 import Colors from '../constants/colors';
 import { sampleVendors, Vendor, MenuItem, isVendorOpen, getTodayHours } from '../models/Vendor';
 
@@ -22,6 +23,8 @@ export default function VendorDetailsScreen() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [activeTab, setActiveTab] = useState('menu');
   const { id } = params;
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -29,6 +32,7 @@ export default function VendorDetailsScreen() {
       const foundVendor = sampleVendors.find(v => v.id === id);
       if (foundVendor) {
         setVendor(foundVendor);
+        setIsFavorited(isFavorite(foundVendor.id));
       } else {
         // Handle vendor not found
         Alert.alert('Error', 'Vendor not found');
@@ -113,7 +117,29 @@ export default function VendorDetailsScreen() {
       <Stack.Screen options={{ 
         title: vendor.name,
         headerBackTitle: 'Back',
-        headerTintColor: Colors.primary
+        headerTintColor: Colors.primary,
+        headerRight: () => (
+          <TouchableOpacity 
+            style={{ marginRight: 15 }}
+            onPress={() => {
+              if (vendor) {
+                if (isFavorited) {
+                  removeFavorite(vendor.id);
+                  setIsFavorited(false);
+                } else {
+                  addFavorite(vendor.id);
+                  setIsFavorited(true);
+                }
+              }
+            }}
+          >
+            <FontAwesome 
+              name={isFavorited ? "heart" : "heart-o"} 
+              size={24} 
+              color={isFavorited ? Colors.secondary : "#888"} 
+            />
+          </TouchableOpacity>
+        )
       }} />
       
       <View style={styles.container}>

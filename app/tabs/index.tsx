@@ -16,6 +16,8 @@ import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFavorites } from '../../context/FavoritesContext';
 import Colors from '../../constants/colors';
 import { sampleVendors, Vendor, isVendorOpen, getTodayHours } from '../../models/Vendor';
 
@@ -44,6 +46,7 @@ export default function MapScreen() {
   });
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
   // Get all unique cuisine types from vendors
   const allCuisineTypes = [...new Set(sampleVendors.map(vendor => vendor.cuisineType))];
@@ -299,12 +302,26 @@ export default function MapScreen() {
       {/* Selected Vendor Card */}
       {selectedVendor && (
         <View style={styles.vendorCard}>
-          <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={() => setSelectedVendor(null)}
-          >
-            <FontAwesome name="times" size={20} color="#888" />
-          </TouchableOpacity>
+          <View style={styles.vendorCardHeader}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setSelectedVendor(null)}
+            >
+              <FontAwesome name="times" size={20} color="#888" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.favoriteButton} onPress={() => 
+                isFavorite(selectedVendor.id) 
+                  ? removeFavorite(selectedVendor.id) 
+                  : addFavorite(selectedVendor.id)
+              }>
+              <FontAwesome 
+                name={isFavorite(selectedVendor.id) ? "heart" : "heart-o"} 
+                size={24} 
+                color={isFavorite(selectedVendor.id) ? Colors.secondary : "#888"} 
+              />
+            </TouchableOpacity>
+          </View>
           
           <Text style={styles.vendorName}>{selectedVendor.name}</Text>
           <Text style={styles.vendorCuisine}>{selectedVendor.cuisineType}</Text>
@@ -603,10 +620,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  vendorCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
+    padding: 5,
+  },
+  favoriteButton: {
     padding: 5,
   },
   vendorName: {

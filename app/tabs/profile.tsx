@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { auth } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 import Colors from '../../constants/colors';
 import { FontAwesome } from '@expo/vector-icons';
+import { useFavorites } from '../../context/FavoritesContext';
+import { sampleVendors, Vendor } from '../../models/Vendor';
 
 export default function ProfileScreen() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { favorites, isLoading: favoritesLoading } = useFavorites();
+  const [favoriteVendors, setFavoriteVendors] = useState<Vendor[]>([]);
 
   useEffect(() => {
     // Get current user details
@@ -18,6 +22,14 @@ export default function ProfileScreen() {
     }
   }, []);
 
+  // Filter vendors based on favorites
+  useEffect(() => {
+    const vendorList = sampleVendors.filter(vendor => 
+      favorites.includes(vendor.id)
+    );
+    setFavoriteVendors(vendorList);
+  }, [favorites]);
+
   const handleSignOut = async () => {
     try {
       await auth.signOut();
@@ -26,6 +38,10 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'Failed to sign out. Please try again.');
       console.error('Sign out error:', error);
     }
+  };
+
+  const navigateToVendorDetails = (vendorId: string) => {
+    router.push(`/vendor-details?id=${vendorId}`);
   };
 
   return (
@@ -43,6 +59,43 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.editButton}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Favorites Section */}
+      <View style={styles.favoritesSection}>
+        <Text style={styles.sectionTitle}>Favorite Vendors</Text>
+        
+        {favoritesLoading ? (
+          <ActivityIndicator size="large" color={Colors.primary} />
+        ) : favoriteVendors.length > 0 ? (
+          <FlatList
+            data={favoriteVendors}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.favoriteItem}
+                onPress={() => navigateToVendorDetails(item.id)}
+              >
+                <View style={styles.favoriteContent}>
+                  <Text style={styles.favoriteName}>{item.name}</Text>
+                  <Text style={styles.favoriteCuisine}>{item.cuisineType}</Text>
+                </View>
+                <FontAwesome name="chevron-right" size={16} color="#888" />
+              </TouchableOpacity>
+            )}
+            style={styles.favoritesList}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>You haven't favorited any vendors yet.</Text>
+            <TouchableOpacity 
+              style={styles.exploreButton}
+              onPress={() => router.push('/tabs')}
+            >
+              <Text style={styles.exploreButtonText}>Explore Vendors</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       
       <View style={styles.menuSection}>
@@ -119,6 +172,60 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  favoritesSection: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: Colors.text,
+  },
+  favoritesList: {
+    marginBottom: 16,
+  },
+  favoriteItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  favoriteContent: {
+    flex: 1,
+  },
+  favoriteName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  favoriteCuisine: {
+    fontSize: 14,
+    color: '#666',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  exploreButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  exploreButtonText: {
+    color: 'white',
     fontWeight: 'bold',
   },
   menuSection: {
