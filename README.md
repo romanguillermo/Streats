@@ -1,4 +1,4 @@
-# Streats 🍽️  
+# Streats 
 *A street food finder app for LA*  
 
 ## Overview  
@@ -6,12 +6,11 @@ Streats is a mobile app designed to help users discover and locate street food v
 
 ## Features (Planned)  
 - 📍 **Real-time vendor locations**  
-- 🔍 **Search & filter by cuisine**  
-- ⭐ **User reviews & ratings**  
-- 🛎️ **Notifications for favorite vendors**  
+- 🔍 **Search & filter by cuisine** 
+- 📃 **View up-to-date menus and hours**
+- ⭐ **User reviews & ratings**
 
 ## Tech Stack  
-- **Frontend:** React Native  
+- **Frontend:** React Native w/ Expo
 - **Backend:** Firebase  
 - **Database:**   
-- **Hosting:**   
