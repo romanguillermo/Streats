@@ -60,7 +60,7 @@ export interface Vendor {
   export const sampleVendors: Vendor[] = [
     {
       id: '1',
-      name: 'Tacos El Jefe',
+      name: 'Taco Truck',
       description: 'Authentic street tacos with homemade salsas and fresh ingredients.',
       cuisineType: 'Mexican',
       location: {
@@ -90,7 +90,7 @@ export interface Vendor {
           userName: 'TacoLover',
           rating: 5,
           comment: 'Best tacos in LA! The salsa is amazing.',
-          date: '2023-11-15',
+          date: '2024-11-15',
         },
       ],
       operatingHours: {
@@ -103,8 +103,8 @@ export interface Vendor {
         sunday: { open: '12:00', close: '21:00' },
       },
       contactInfo: {
-        phone: '555-123-4567',
-        instagram: '@tacos_el_jefe',
+        phone: 'xxx-xxx-xxxx',
+        instagram: '@instagram_handle',
       },
     },
     {
@@ -157,7 +157,7 @@ export interface Vendor {
     },
     {
       id: '3',
-      name: 'Burger Bliss',
+      name: 'Burgers',
       description: 'Gourmet burgers made with locally-sourced, organic ingredients.',
       cuisineType: 'American',
       location: {
@@ -241,7 +241,7 @@ export interface Vendor {
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
-    // Convert the day name to the property name in our OperatingHours interface
+    // Convert the day name to the property name in OperatingHours interface
     let day: keyof OperatingHours;
     switch(dayName) {
       case 'monday': day = 'monday'; break;

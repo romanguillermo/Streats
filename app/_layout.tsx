@@ -11,7 +11,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FavoritesProvider } from '../context/FavoritesContext';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -22,14 +21,11 @@ export default function RootLayout() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Subscribe to auth state changes
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      // Using a type-safe approach with explicit null check
       setUser(currentUser as any);
       if (initializing) setInitializing(false);
     });
     
-    // Clean up subscription on unmount
     return unsubscribe;
   }, [initializing]);
 

@@ -26,24 +26,20 @@ export default function VendorsScreen() {
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [onlyShowOpen, setOnlyShowOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  // Unique cuisines filter
   const cuisineTypes = [...new Set(sampleVendors.map(v => v.cuisineType))];
 
   useEffect(() => {
     setIsLoading(true);
-
     let result = [...sampleVendors];
 
     // Apply cuisine filter
     if (selectedCuisine) {
       result = result.filter(vendor => vendor.cuisineType === selectedCuisine);
     }
-
     // Filter by open status
     if (onlyShowOpen) {
       result = result.filter(vendor => isVendorOpen(vendor));
     }
-
     // Apply search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -53,7 +49,6 @@ export default function VendorsScreen() {
         vendor.description.toLowerCase().includes(query)
       );
     }
-
     setFilteredVendors(result);
     setIsLoading(false);
   }, [searchQuery, selectedCuisine, onlyShowOpen]);
@@ -81,7 +76,6 @@ export default function VendorsScreen() {
     setOnlyShowOpen(false);
   }
 
-  // Render a vendor card item
   const renderVendorItem = ({ item }: { item: Vendor }) => {
     const isOpen = isVendorOpen(item);
     

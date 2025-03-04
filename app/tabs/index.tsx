@@ -47,8 +47,6 @@ export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
-
-  // Get all unique cuisine types from vendors
   const allCuisineTypes = [...new Set(sampleVendors.map(vendor => vendor.cuisineType))];
 
   useEffect(() => {

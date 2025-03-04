@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -23,23 +23,29 @@ export default function VendorDetailsScreen() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [activeTab, setActiveTab] = useState('menu');
   const { id } = params;
-  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
-  const [isFavorited, setIsFavorited] = useState(false);
+  const { isFavorite, addFavorite, removeFavorite, favorites } = useFavorites();
 
   useEffect(() => {
     if (id) {
-      // Find the vendor with the matching id
       const foundVendor = sampleVendors.find(v => v.id === id);
       if (foundVendor) {
         setVendor(foundVendor);
-        setIsFavorited(isFavorite(foundVendor.id));
       } else {
-        // Handle vendor not found
         Alert.alert('Error', 'Vendor not found');
         router.back();
       }
     }
   }, [id]);
+
+  const toggleFavorite = useCallback(() => {
+    if (vendor) {
+      if (isFavorite(vendor.id)) {
+        removeFavorite(vendor.id);
+      } else {
+        addFavorite(vendor.id);
+      }
+    }
+  }, [vendor, isFavorite, addFavorite, removeFavorite]);
 
   const navigateToVendor = () => {
     if (vendor && Platform.OS !== 'web') {
@@ -55,7 +61,7 @@ export default function VendorDetailsScreen() {
         Linking.openURL(url);
       }
     }
-  };
+  };  
 
   const callVendor = () => {
     if (vendor?.contactInfo.phone) {
@@ -115,34 +121,31 @@ export default function VendorDetailsScreen() {
   return (
     <>
       <Stack.Screen options={{ 
-        title: vendor.name,
+        title: vendor?.name || "",
         headerBackTitle: 'Back',
         headerTintColor: Colors.primary,
-        headerRight: () => (
-          <TouchableOpacity 
-            style={{ marginRight: 15 }}
-            onPress={() => {
-              if (vendor) {
-                if (isFavorited) {
-                  removeFavorite(vendor.id);
-                  setIsFavorited(false);
-                } else {
-                  addFavorite(vendor.id);
-                  setIsFavorited(true);
-                }
-              }
-            }}
-          >
-            <FontAwesome 
-              name={isFavorited ? "heart" : "heart-o"} 
-              size={24} 
-              color={isFavorited ? Colors.secondary : "#888"} 
-            />
-          </TouchableOpacity>
-        )
+        
       }} />
       
       <View style={styles.container}>
+        <TouchableOpacity 
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            zIndex: 10,
+            backgroundColor: 'white',
+            borderRadius: 20,
+            padding: 8,
+          }}
+          onPress={toggleFavorite}
+        >
+          <FontAwesome 
+            name={isFavorite(vendor.id) ? "heart" : "heart-o"} 
+            size={24} 
+            color={isFavorite(vendor.id) ? Colors.secondary : "#888"} 
+          />
+        </TouchableOpacity>
         {/* Vendor Header */}
         <View style={styles.header}>
           <View style={styles.vendorImageContainer}>

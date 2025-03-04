@@ -32,8 +32,7 @@ export default function AuthScreen() {
         router.replace('/location-permission');
       }
     });
-
-    return unsubscribe; // Cleanup subscription on unmount
+    return unsubscribe;
   }, []);
 
   const handleAuth = async () => {
@@ -48,7 +47,6 @@ export default function AuthScreen() {
       } else {
         // Signup
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-        // Set the user's display name
         if (userCredential.user) {
           await userCredential.user.updateProfile({ displayName: name });
         }
@@ -56,7 +54,6 @@ export default function AuthScreen() {
       }
     } catch (error: any) {
       console.error('Authentication error:', error);
-      // Error handling
       if (error.code === 'auth/invalid-email') {
         Alert.alert('Invalid Email', 'Please enter a valid email address.');
       } else if (error.code === 'auth/wrong-password') {

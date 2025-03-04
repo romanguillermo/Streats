@@ -4,31 +4,19 @@ import { auth } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 import Colors from '../../constants/colors';
 import { FontAwesome } from '@expo/vector-icons';
-import { useFavorites } from '../../context/FavoritesContext';
-import { sampleVendors, Vendor } from '../../models/Vendor';
+
 
 export default function ProfileScreen() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const { favorites, isLoading: favoritesLoading } = useFavorites();
-  const [favoriteVendors, setFavoriteVendors] = useState<Vendor[]>([]);
 
   useEffect(() => {
-    // Get current user details
     const user = auth.currentUser;
     if (user) {
       setUserName(user.displayName);
       setUserEmail(user.email);
     }
   }, []);
-
-  // Filter vendors based on favorites
-  useEffect(() => {
-    const vendorList = sampleVendors.filter(vendor => 
-      favorites.includes(vendor.id)
-    );
-    setFavoriteVendors(vendorList);
-  }, [favorites]);
 
   const handleSignOut = async () => {
     try {
@@ -40,8 +28,13 @@ export default function ProfileScreen() {
     }
   };
 
-  const navigateToVendorDetails = (vendorId: string) => {
-    router.push(`/vendor-details?id=${vendorId}`);
+  const navigateToFavorites = () => {
+    // placeholder
+    router.push('/tabs/vendors');
+  };
+
+  const navigateToSettings = () => {
+    // placeholder
   };
 
   return (
@@ -59,43 +52,6 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.editButton}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Favorites Section */}
-      <View style={styles.favoritesSection}>
-        <Text style={styles.sectionTitle}>Favorite Vendors</Text>
-        
-        {favoritesLoading ? (
-          <ActivityIndicator size="large" color={Colors.primary} />
-        ) : favoriteVendors.length > 0 ? (
-          <FlatList
-            data={favoriteVendors}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.favoriteItem}
-                onPress={() => navigateToVendorDetails(item.id)}
-              >
-                <View style={styles.favoriteContent}>
-                  <Text style={styles.favoriteName}>{item.name}</Text>
-                  <Text style={styles.favoriteCuisine}>{item.cuisineType}</Text>
-                </View>
-                <FontAwesome name="chevron-right" size={16} color="#888" />
-              </TouchableOpacity>
-            )}
-            style={styles.favoritesList}
-          />
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>You haven't favorited any vendors yet.</Text>
-            <TouchableOpacity 
-              style={styles.exploreButton}
-              onPress={() => router.push('/tabs')}
-            >
-              <Text style={styles.exploreButtonText}>Explore Vendors</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
       
       <View style={styles.menuSection}>
