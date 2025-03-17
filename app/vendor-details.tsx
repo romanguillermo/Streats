@@ -11,19 +11,27 @@ import {
   Platform,
   Alert
 } from 'react-native';
+import { auth } from '../config/firebaseConfig';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import Colors from '../constants/colors';
-import { sampleVendors, Vendor, MenuItem, isVendorOpen, getTodayHours } from '../models/Vendor';
+import { sampleVendors, Vendor, MenuItem, isVendorOpen, getTodayHours, Review } from '../models/Vendor';
+import ReviewModal from '../components/ReviewModal';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [activeTab, setActiveTab] = useState('menu');
   const { id } = params;
   const { isFavorite, addFavorite, removeFavorite, favorites } = useFavorites();
+
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [activeTab, setActiveTab] = useState('menu');
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [userReviews, setUserReviews] = useState<Review[]>([])
+
+  const currentUser = auth.currentUser;
 
   useEffect(() => {
     if (id) {
@@ -36,6 +44,16 @@ export default function VendorDetailsScreen() {
       }
     }
   }, [id]);
+
+  useEffect(() => {
+    // After loading the vendor, find user reviews
+    if (vendor && currentUser) {
+      const userReviewList = vendor.reviews.filter(
+        review => review.userId === currentUser.uid
+      );
+      setUserReviews(userReviewList);
+    }
+  }, [vendor, currentUser]);
 
   const toggleFavorite = useCallback(() => {
     if (vendor) {
@@ -117,6 +135,163 @@ export default function VendorDetailsScreen() {
       </View>
     );
   }
+  
+  // Submit review
+  const handleReviewSubmit = (rating: number, comment: string) => {
+    if (!vendor || !currentUser) {
+      Alert.alert('Error', 'You must be logged in to leave a review');
+      return;
+    }
+    
+    // Check if user is editing an existing review
+    if (editingReview) {
+      // Find the review in the vendor's reviews
+      const updatedReviews = vendor.reviews.map(review => 
+        review.id === editingReview.id 
+          ? {
+              ...review,
+              rating,
+              comment,
+              date: new Date().toISOString()
+            }
+          : review
+      );
+      
+      // Update vendor with new reviews
+      setVendor({
+        ...vendor,
+        reviews: updatedReviews,
+        // Recalculate the average rating
+        rating: calculateAverageRating(updatedReviews)
+      });
+      
+      setEditingReview(null);
+    } else {
+      // Create new review
+      const newReview: Review = {
+        id: Date.now().toString(), // Simple ID generation
+        userId: currentUser.uid,
+        userName: currentUser.displayName || 'Anonymous',
+        rating,
+        comment,
+        date: new Date().toISOString()
+      };
+      
+      const updatedReviews = [...vendor.reviews, newReview];
+      
+      // Update vendor with new review
+      setVendor({
+        ...vendor,
+        reviews: updatedReviews,
+        // Recalculate average rating
+        rating: calculateAverageRating(updatedReviews)
+      });
+      
+      // Update user reviews
+      setUserReviews([...userReviews, newReview]);
+    }
+    
+    setShowReviewModal(false);
+    
+    // Need to send to backend
+    Alert.alert('Success', 'Your review has been submitted!');
+  };
+  
+  // Calculate average rating
+  const calculateAverageRating = (reviews: Review[]): number => {
+    if (reviews.length === 0) return 0;
+    
+    const sum = reviews.reduce((total, review) => total + review.rating, 0);
+    return Number((sum / reviews.length).toFixed(1));
+  };
+  
+  // Edit a review
+  const handleEditReview = (review: Review) => {
+    setEditingReview(review);
+    setShowReviewModal(true);
+  };
+  
+  // Delete a review
+  const handleDeleteReview = (reviewId: string) => {
+    Alert.alert(
+      'Delete Review',
+      'Are you sure you want to delete this review?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (!vendor) return;
+            
+            const updatedReviews = vendor.reviews.filter(
+              review => review.id !== reviewId
+            );
+            
+            setVendor({
+              ...vendor,
+              reviews: updatedReviews,
+              rating: calculateAverageRating(updatedReviews)
+            });
+            
+            setUserReviews(userReviews.filter(review => review.id !== reviewId));
+          }
+        }
+      ]
+    );
+  };
+  
+  const renderReviewItem = (review: Review) => {
+    const isUserReview = currentUser && review.userId === currentUser.uid;
+    
+    return (
+      <View key={review.id} style={styles.reviewItem}>
+        <View style={styles.reviewHeader}>
+          <View style={styles.reviewUser}>
+            <FontAwesome name="user-circle" size={24} color="#ccc" />
+            <Text style={styles.reviewUsername}>
+              {review.userName}
+              {isUserReview && <Text style={styles.userReviewLabel}> (You)</Text>}
+            </Text>
+          </View>
+          <View style={styles.reviewRating}>
+            {[1, 2, 3, 4, 5].map(star => (
+              <FontAwesome
+                key={star}
+                name="star"
+                size={14}
+                color={star <= review.rating ? Colors.primary : '#ddd'}
+                style={{ marginRight: 2 }}
+              />
+            ))}
+          </View>
+        </View>
+        <Text style={styles.reviewDate}>
+          {new Date(review.date).toLocaleDateString()}
+        </Text>
+        <Text style={styles.reviewComment}>{review.comment}</Text>
+        
+        {isUserReview && (
+          <View style={styles.reviewActions}>
+            <TouchableOpacity 
+              style={styles.reviewActionButton}
+              onPress={() => handleEditReview(review)}
+            >
+              <FontAwesome name="pencil" size={14} color="#666" />
+              <Text style={styles.reviewActionText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.reviewActionButton}
+              onPress={() => handleDeleteReview(review.id)}
+            >
+              <FontAwesome name="trash" size={14} color="#666" />
+              <Text style={styles.reviewActionText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <>
@@ -124,7 +299,6 @@ export default function VendorDetailsScreen() {
         title: vendor?.name || "",
         headerBackTitle: 'Back',
         headerTintColor: Colors.primary,
-        
       }} />
       
       <View style={styles.container}>
@@ -323,29 +497,8 @@ export default function VendorDetailsScreen() {
                 </Text>
               </View>
               
-              {vendor.reviews.map(review => (
-                <View key={review.id} style={styles.reviewItem}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewUser}>
-                      <FontAwesome name="user-circle" size={24} color="#ccc" />
-                      <Text style={styles.reviewUsername}>{review.userName}</Text>
-                    </View>
-                    <View style={styles.reviewRating}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <FontAwesome
-                          key={star}
-                          name="star"
-                          size={14}
-                          color={star <= review.rating ? Colors.primary : '#ddd'}
-                          style={{ marginRight: 2 }}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                  <Text style={styles.reviewDate}>{new Date(review.date).toLocaleDateString()}</Text>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                </View>
-              ))}
+              {/* Display all reviews */}
+              {vendor.reviews.map(review => renderReviewItem(review))}
               
               {vendor.reviews.length === 0 && (
                 <View style={styles.emptyState}>
@@ -353,13 +506,46 @@ export default function VendorDetailsScreen() {
                 </View>
               )}
               
-              <TouchableOpacity style={styles.writeReviewButton}>
-                <Text style={styles.writeReviewText}>Write a Review</Text>
-              </TouchableOpacity>
+              {/* Add or edit review button */}
+              {currentUser ? (
+                userReviews.length > 0 ? (
+                  <TouchableOpacity 
+                    style={styles.writeReviewButton}
+                    onPress={() => handleEditReview(userReviews[0])}
+                  >
+                    <Text style={styles.writeReviewText}>Edit Your Review</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.writeReviewButton}
+                    onPress={() => setShowReviewModal(true)}
+                  >
+                    <Text style={styles.writeReviewText}>Write a Review</Text>
+                  </TouchableOpacity>
+                )
+              ) : (
+                <TouchableOpacity 
+                  style={styles.writeReviewButton}
+                  onPress={() => Alert.alert('Sign In Required', 'Please sign in to leave a review')}
+                >
+                  <Text style={styles.writeReviewText}>Log in to Review</Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
         </ScrollView>
       </View>
+      <ReviewModal
+        visible={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setEditingReview(null);
+        }}
+        onSubmit={handleReviewSubmit}
+        initialRating={editingReview ? editingReview.rating : 0}
+        initialComment={editingReview ? editingReview.comment : ''}
+        isEditing={!!editingReview}
+      />
     </>
   );
 }
@@ -618,5 +804,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  userReviewLabel: {
+    fontStyle: 'italic',
+    color: '#666',
+    fontSize: 14,
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  reviewActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 15,
+    padding: 5,
+  },
+  reviewActionText: {
+    color: '#666',
+    marginLeft: 5,
+    fontSize: 14,
   },
 });
