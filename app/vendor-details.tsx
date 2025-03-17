@@ -293,14 +293,7 @@ export default function VendorDetailsScreen() {
     );
   };
 
-  return (
-    <>
-      <Stack.Screen options={{ 
-        title: vendor?.name || "",
-        headerBackTitle: 'Back',
-        headerTintColor: Colors.primary,
-      }} />
-      
+  return (      
       <View style={styles.container}>
         <TouchableOpacity 
           style={{
@@ -534,19 +527,19 @@ export default function VendorDetailsScreen() {
             </>
           )}
         </ScrollView>
+      
+        <ReviewModal
+          visible={showReviewModal}
+          onClose={() => {
+            setShowReviewModal(false);
+            setEditingReview(null);
+          }}
+          onSubmit={handleReviewSubmit}
+          initialRating={editingReview ? editingReview.rating : 0}
+          initialComment={editingReview ? editingReview.comment : ''}
+          isEditing={!!editingReview}
+        />
       </View>
-      <ReviewModal
-        visible={showReviewModal}
-        onClose={() => {
-          setShowReviewModal(false);
-          setEditingReview(null);
-        }}
-        onSubmit={handleReviewSubmit}
-        initialRating={editingReview ? editingReview.rating : 0}
-        initialComment={editingReview ? editingReview.comment : ''}
-        isEditing={!!editingReview}
-      />
-    </>
   );
 }
 

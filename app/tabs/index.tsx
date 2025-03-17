@@ -189,14 +189,14 @@ export default function MapScreen() {
   // Check if we're on the web
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <Text>Map is not supported on the web.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['right', 'left', 'bottom']}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
@@ -480,7 +480,7 @@ export default function MapScreen() {
           />
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    top: 50,
+    top: 65,
     left: 16,
     right: 16,
     zIndex: 1,
@@ -554,8 +554,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   map: {
-    width: Dimensions.get('window').width,
-    height: Dimensions.get('window').height,
+    ...StyleSheet.absoluteFillObject,
   },
   loadingContainer: {
     flex: 1,

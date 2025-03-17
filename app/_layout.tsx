@@ -10,6 +10,7 @@ import { router } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FavoritesProvider } from '../context/FavoritesContext';
+import Colors from '../constants/colors';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,13 +43,41 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <FavoritesProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="location-permission" options={{ headerShown: false }} />
-          <Stack.Screen name="vendor-details" options={{ headerShown: true, title: "Vendor Details" }} />
-          <Stack.Screen name="tabs" options={{ headerShown: false }} />
+      <StatusBar style="dark" translucent={true} />
+        <Stack 
+          screenOptions={{
+            headerShown: false,
+            headerStyle: {
+              backgroundColor: '#FFFFFF',
+            },
+            headerTintColor: Colors.primary,
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            contentStyle: {
+              backgroundColor: '#FFFFFF',
+            },
+          }}
+        >
+          {/* Non-tabbed screens */}
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="location-permission" />
+          <Stack.Screen 
+            name="vendor-details" 
+            options={{ 
+              headerShown: true, 
+              title: "Vendor Details",
+            }} 
+          />
+          <Stack.Screen 
+            name="settings" 
+            options={{ 
+              headerShown: true, 
+              title: "Settings" 
+            }} 
+          />
+          <Stack.Screen name="tabs" />
           <Stack.Screen name="+not-found" />
         </Stack>
       </FavoritesProvider>

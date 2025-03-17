@@ -4,6 +4,8 @@ import { auth } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 import Colors from '../../constants/colors';
 import { FontAwesome } from '@expo/vector-icons';
+import { navigate } from 'expo-router/build/global-state/routing';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 export default function ProfileScreen() {
@@ -34,11 +36,11 @@ export default function ProfileScreen() {
   };
 
   const navigateToSettings = () => {
-    // placeholder
+    router.push('/settings');
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.header}>My Profile</Text>
       
       <View style={styles.profileSection}>
@@ -67,15 +69,9 @@ export default function ProfileScreen() {
           <FontAwesome name="chevron-right" size={16} color="#888" />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={navigateToSettings}>
           <FontAwesome name="cog" size={24} color={Colors.primary} />
           <Text style={styles.menuItemText}>Settings</Text>
-          <FontAwesome name="chevron-right" size={16} color="#888" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <FontAwesome name="question-circle" size={24} color={Colors.primary} />
-          <Text style={styles.menuItemText}>Help & Support</Text>
           <FontAwesome name="chevron-right" size={16} color="#888" />
         </TouchableOpacity>
       </View>
@@ -83,7 +79,7 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutButtonText}>Sign Out</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -92,7 +88,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#fff',
-    paddingTop: 60, // Add space at top since we're hiding the header
   },
   header: {
     fontSize: 24,
