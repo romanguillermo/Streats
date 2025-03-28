@@ -254,9 +254,9 @@ export default function MapScreen() {
             longitude: mapRegion.longitude
           }}
           title="Your Location"
-          pinColor={Colors.secondary}
+          pinColor={Colors.secondary.red}
         >
-          <FontAwesome name="map-marker" size={36} color={Colors.secondary} />
+          <FontAwesome name="map-marker" size={36} color={Colors.secondary.red} />
         </Marker>
 
         {/* Vendor Markers */}
@@ -316,7 +316,7 @@ export default function MapScreen() {
               <FontAwesome 
                 name={isFavorite(selectedVendor.id) ? "heart" : "heart-o"} 
                 size={24} 
-                color={isFavorite(selectedVendor.id) ? Colors.secondary : "#888"} 
+                color={isFavorite(selectedVendor.id) ? Colors.primary : "#888"} 
               />
             </TouchableOpacity>
           </View>
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     position: 'absolute',
-    top: 100,
+    top: 115,
     left: 16,
     right: 16,
     zIndex: 1,

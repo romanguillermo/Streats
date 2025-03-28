@@ -41,11 +41,6 @@ export default function SettingsScreen() {
   
   const supportOptions = [
     {
-      title: 'Help Center',
-      icon: 'question-circle',
-      onPress: () => Alert.alert('Help Center', 'This feature is coming soon!'),
-    },
-    {
       title: 'Contact Support',
       icon: 'envelope',
       onPress: () => Linking.openURL('mailto:support@streats.app'),
@@ -57,17 +52,7 @@ export default function SettingsScreen() {
     }
   ];
   
-  const legalOptions = [
-    {
-      title: 'Privacy Policy',
-      icon: 'shield',
-      onPress: () => Alert.alert('Privacy Policy', 'This feature is coming soon!'),
-    },
-    {
-      title: 'Terms of Service',
-      icon: 'file-text-o',
-      onPress: () => Alert.alert('Terms of Service', 'This feature is coming soon!'),
-    },
+  const about = [
     {
       title: 'About Streats',
       icon: 'info-circle',
@@ -114,9 +99,9 @@ export default function SettingsScreen() {
         <ScrollView style={styles.scrollContainer}>
           {renderSettingSection('App Settings', appSettings)}
           {renderSettingSection('Support', supportOptions)}
-          {renderSettingSection('Legal', legalOptions)}
+          {renderSettingSection('About', about)}
           
-          <Text style={styles.versionText}>Streats v1.0.0</Text>
+          <Text style={styles.versionText}>Streats v1.0</Text>
         </ScrollView>
       </View>
   );

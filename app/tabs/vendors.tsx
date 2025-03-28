@@ -104,7 +104,7 @@ export default function VendorsScreen() {
               <FontAwesome 
                 name={isFavorite(item.id) ? "heart" : "heart-o"} 
                 size={22} 
-                color={isFavorite(item.id) ? Colors.secondary : "#888"} 
+                color={isFavorite(item.id) ? Colors.primary : "#888"} 
               />
             </TouchableOpacity>
           </View>

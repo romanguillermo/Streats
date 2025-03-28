@@ -310,7 +310,7 @@ export default function VendorDetailsScreen() {
           <FontAwesome 
             name={isFavorite(vendor.id) ? "heart" : "heart-o"} 
             size={24} 
-            color={isFavorite(vendor.id) ? Colors.secondary : "#888"} 
+            color={isFavorite(vendor.id) ? Colors.primary : "#888"} 
           />
         </TouchableOpacity>
         {/* Vendor Header */}

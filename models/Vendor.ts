@@ -13,7 +13,7 @@ export interface Vendor {
     reviews: Review[];
     operatingHours: OperatingHours;
     contactInfo: ContactInfo;
-    isOpen?: boolean; // Calculated field
+    isOpen?: boolean;
   }
   
   export interface MenuItem {

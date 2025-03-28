@@ -7,14 +7,14 @@ import Colors from '../constants/colors';
 export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
+      <Text style={styles.streatsText}>Streats</Text>
       <Image
-        source={require('../assets/images/TempLogo.png')}
+        source={require('../assets/images/streatstruckimage.png')}
         style={styles.logo}
       />
       <Text style={styles.welcomeText}>Welcome</Text>
       <Text style={styles.discoverText}>Discover Local Street Food</Text>
 
-      {/* Next Button */}
       <Link href="/auth/auth" asChild>
         <TouchableOpacity style={styles.nextButton}>
           <Text style={styles.nextButtonText}>→</Text>
@@ -37,8 +37,13 @@ const styles = StyleSheet.create({
     resizeMode: 'contain', // Image scaling
     marginBottom: 30,
   },
+  streatsText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
   welcomeText: {
-    fontSize: 36,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
   },
