@@ -1,7 +1,7 @@
 import { red } from "react-native-reanimated/lib/typescript/Colors";
 
 const colors = {
-  primary: '#FBC02D', // Taco shell yellow
+  primary: '#FFB300', // Taco shell yellow
   secondary: {
     black: '#000000',
     white: '#FFFFFF',

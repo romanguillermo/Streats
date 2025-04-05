@@ -10,7 +10,6 @@ import {
   TextInput,
   Modal,
   FlatList,
-  Image
 } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -20,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFavorites } from '../../context/FavoritesContext';
 import Colors from '../../constants/colors';
 import { sampleVendors, Vendor, isVendorOpen, getTodayHours } from '../../models/Vendor';
+import MapVendorCard from '../../components/MapVendorCard';
+import SearchResultsCard from '../../components/SearchResultsCard';
 
 interface FilterOptions {
   onlyOpen: boolean;
@@ -196,44 +197,59 @@ export default function MapScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'left', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={["right", "left", "bottom"]}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <FontAwesome name="search" size={16} color="#888" style={styles.searchIcon} />
+          <FontAwesome
+            name="search"
+            size={16}
+            color="#888"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for food trucks..."
+            placeholder="Search for food vendors..."
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={() => setSearchQuery("")}>
               <FontAwesome name="times-circle" size={16} color="#888" />
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity 
-          style={styles.filterButton} 
+        <TouchableOpacity
+          style={styles.filterButton}
           onPress={() => setFilterModalVisible(true)}
         >
-          <FontAwesome 
-            name="filter" 
-            size={20} 
-            color={filters.onlyOpen || filters.cuisineTypes.length > 0 || filters.minRating > 0 
-              ? Colors.primary 
-              : '#888'} 
+          <FontAwesome
+            name="filter"
+            size={20}
+            color={
+              filters.onlyOpen ||
+              filters.cuisineTypes.length > 0 ||
+              filters.minRating > 0
+                ? Colors.primary
+                : "#888"
+            }
           />
         </TouchableOpacity>
       </View>
 
       {/* Filter Results Count */}
-      {(searchQuery || filters.onlyOpen || filters.cuisineTypes.length > 0 || filters.minRating > 0) && (
+      {(searchQuery ||
+        filters.onlyOpen ||
+        filters.cuisineTypes.length > 0 ||
+        filters.minRating > 0) && (
         <View style={styles.resultsContainer}>
           <Text style={styles.resultsText}>
-            {filteredVendors.length} {filteredVendors.length === 1 ? 'vendor' : 'vendors'} found
+            {filteredVendors.length}{" "}
+            {filteredVendors.length === 1 ? "vendor" : "vendors"} found
           </Text>
-          {(filters.onlyOpen || filters.cuisineTypes.length > 0 || filters.minRating > 0) && (
+          {(filters.onlyOpen ||
+            filters.cuisineTypes.length > 0 ||
+            filters.minRating > 0) && (
             <TouchableOpacity onPress={clearFilters}>
               <Text style={styles.clearFiltersText}>Clear filters</Text>
             </TouchableOpacity>
@@ -242,41 +258,37 @@ export default function MapScreen() {
       )}
 
       {/* Map */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        initialRegion={mapRegion}
-      >
+      <MapView ref={mapRef} style={styles.map} initialRegion={mapRegion}>
         {/* User Location */}
         <Marker
           coordinate={{
             latitude: mapRegion.latitude,
-            longitude: mapRegion.longitude
+            longitude: mapRegion.longitude,
           }}
           title="Your Location"
           pinColor={Colors.secondary.red}
         >
-          <FontAwesome name="map-marker" size={36} color={Colors.secondary.red} />
+          <FontAwesome
+            name="map-marker"
+            size={36}
+            color={Colors.secondary.red}
+          />
         </Marker>
 
         {/* Vendor Markers */}
-        {filteredVendors.map(vendor => (
+        {filteredVendors.map((vendor) => (
           <Marker
             key={vendor.id}
             coordinate={{
               latitude: vendor.location.latitude,
-              longitude: vendor.location.longitude
+              longitude: vendor.location.longitude,
             }}
             title={vendor.name}
             description={vendor.cuisineType}
             onPress={() => setSelectedVendor(vendor)}
           >
             <View style={styles.customMarker}>
-              <FontAwesome 
-                name="cutlery" 
-                size={16} 
-                color="white" 
-              />
+              <FontAwesome name="cutlery" size={16} color="white" />
             </View>
             <Callout>
               <View style={styles.calloutContainer}>
@@ -284,7 +296,10 @@ export default function MapScreen() {
                 <Text style={styles.calloutSubtitle}>{vendor.cuisineType}</Text>
                 <View style={styles.calloutRating}>
                   <FontAwesome name="star" size={14} color={Colors.primary} />
-                  <Text style={styles.calloutRatingText}> {vendor.rating.toFixed(1)}</Text>
+                  <Text style={styles.calloutRatingText}>
+                    {" "}
+                    {vendor.rating.toFixed(1)}
+                  </Text>
                 </View>
               </View>
             </Callout>
@@ -299,63 +314,22 @@ export default function MapScreen() {
 
       {/* Selected Vendor Card */}
       {selectedVendor && (
-        <View style={styles.vendorCard}>
-          <View style={styles.vendorCardHeader}>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setSelectedVendor(null)}
-            >
-              <FontAwesome name="times" size={20} color="#888" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.favoriteButton} onPress={() => 
-                isFavorite(selectedVendor.id) 
-                  ? removeFavorite(selectedVendor.id) 
-                  : addFavorite(selectedVendor.id)
-              }>
-              <FontAwesome 
-                name={isFavorite(selectedVendor.id) ? "heart" : "heart-o"} 
-                size={24} 
-                color={isFavorite(selectedVendor.id) ? Colors.primary : "#888"} 
-              />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.vendorName}>{selectedVendor.name}</Text>
-          <Text style={styles.vendorCuisine}>{selectedVendor.cuisineType}</Text>
-          
-          <View style={styles.vendorRatingContainer}>
-            <View style={styles.ratingStars}>
-              {[1, 2, 3, 4, 5].map(star => (
-                <FontAwesome 
-                  key={star}
-                  name="star" 
-                  size={16} 
-                  color={star <= selectedVendor.rating ? Colors.primary : '#ddd'} 
-                  style={{ marginRight: 2 }}
-                />
-              ))}
-            </View>
-            <Text style={styles.vendorRating}>{selectedVendor.rating.toFixed(1)}</Text>
-          </View>
-          
-          <Text style={styles.vendorDescription}>{selectedVendor.description}</Text>
-          
-          <View style={styles.vendorHours}>
-            <FontAwesome name="clock-o" size={16} color="#666" style={{ marginRight: 8 }} />
-            <Text>
-              {isVendorOpen(selectedVendor) 
-                ? <Text style={{ color: 'green', fontWeight: 'bold' }}>Open Now: </Text>
-                : <Text style={{ color: 'red', fontWeight: 'bold' }}>Closed: </Text>
-              }
-              {getTodayHours(selectedVendor)}
-            </Text>
-          </View>
-          
-          <TouchableOpacity style={styles.vendorDetailsButton} onPress={() => router.push(`/vendor-details?id=${selectedVendor.id}`)}>
-            <Text style={styles.vendorDetailsText}>View Menu & Details</Text>
-          </TouchableOpacity>
-        </View>
+        <MapVendorCard
+          vendor={selectedVendor}
+          isFavorite={isFavorite(selectedVendor.id)} // Check favorite status
+          onClose={() => setSelectedVendor(null)} // Pass handler to close
+          onToggleFavorite={() => {
+            // Pass handler to toggle favorite
+            if (isFavorite(selectedVendor.id)) {
+              removeFavorite(selectedVendor.id);
+            } else {
+              addFavorite(selectedVendor.id);
+            }
+          }}
+          onNavigateToDetails={() =>
+            router.push(`/vendor-details?id=${selectedVendor.id}`)
+          } // Pass navigation handler
+        />
       )}
 
       {/* Filter Modal */}
@@ -375,36 +349,46 @@ export default function MapScreen() {
             </View>
 
             {/* Open Now Filter */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.filterOption}
-              onPress={() => setFilters({...filters, onlyOpen: !filters.onlyOpen})}
+              onPress={() =>
+                setFilters({ ...filters, onlyOpen: !filters.onlyOpen })
+              }
             >
               <Text style={styles.filterText}>Open Now</Text>
-              <View style={[
-                styles.checkbox, 
-                filters.onlyOpen ? { backgroundColor: Colors.primary } : {}
-              ]}>
-                {filters.onlyOpen && <FontAwesome name="check" size={16} color="white" />}
+              <View
+                style={[
+                  styles.checkbox,
+                  filters.onlyOpen ? { backgroundColor: Colors.primary } : {},
+                ]}
+              >
+                {filters.onlyOpen && (
+                  <FontAwesome name="check" size={16} color="white" />
+                )}
               </View>
             </TouchableOpacity>
 
             {/* Rating Filter */}
             <Text style={styles.filterSectionTitle}>Minimum Rating</Text>
             <View style={styles.ratingFilterContainer}>
-              {[0, 3, 3.5, 4, 4.5].map(rating => (
-                <TouchableOpacity 
+              {[0, 3, 3.5, 4, 4.5].map((rating) => (
+                <TouchableOpacity
                   key={rating}
                   style={[
                     styles.ratingButton,
-                    filters.minRating === rating ? { backgroundColor: Colors.primary } : {}
+                    filters.minRating === rating
+                      ? { backgroundColor: Colors.primary }
+                      : {},
                   ]}
-                  onPress={() => setFilters({...filters, minRating: rating})}
+                  onPress={() => setFilters({ ...filters, minRating: rating })}
                 >
-                  <Text style={[
-                    styles.ratingButtonText,
-                    filters.minRating === rating ? { color: 'white' } : {}
-                  ]}>
-                    {rating === 0 ? 'Any' : `${rating}+`}
+                  <Text
+                    style={[
+                      styles.ratingButtonText,
+                      filters.minRating === rating ? { color: "white" } : {},
+                    ]}
+                  >
+                    {rating === 0 ? "Any" : `${rating}+`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -413,21 +397,28 @@ export default function MapScreen() {
             {/* Cuisine Filter */}
             <Text style={styles.filterSectionTitle}>Cuisine Type</Text>
             <View style={styles.cuisineFilterContainer}>
-              {allCuisineTypes.map(cuisine => (
-                <TouchableOpacity 
+              {allCuisineTypes.map((cuisine) => (
+                <TouchableOpacity
                   key={cuisine}
                   style={[
                     styles.cuisineButton,
-                    filters.cuisineTypes.includes(cuisine) 
-                      ? { backgroundColor: Colors.primary, borderColor: Colors.primary } 
-                      : {}
+                    filters.cuisineTypes.includes(cuisine)
+                      ? {
+                          backgroundColor: Colors.primary,
+                          borderColor: Colors.primary,
+                        }
+                      : {},
                   ]}
                   onPress={() => toggleCuisineFilter(cuisine)}
                 >
-                  <Text style={[
-                    styles.cuisineButtonText,
-                    filters.cuisineTypes.includes(cuisine) ? { color: 'white' } : {}
-                  ]}>
+                  <Text
+                    style={[
+                      styles.cuisineButtonText,
+                      filters.cuisineTypes.includes(cuisine)
+                        ? { color: "white" }
+                        : {},
+                    ]}
+                  >
                     {cuisine}
                   </Text>
                 </TouchableOpacity>
@@ -436,13 +427,13 @@ export default function MapScreen() {
 
             {/* Action Buttons */}
             <View style={styles.modalActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.clearButton}
                 onPress={clearFilters}
               >
                 <Text style={styles.clearButtonText}>Clear All</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.applyButton}
                 onPress={() => setFilterModalVisible(false)}
               >
@@ -458,24 +449,18 @@ export default function MapScreen() {
         <View style={styles.searchResultsContainer}>
           <FlatList
             data={filteredVendors}
-            keyExtractor={item => item.id}
+            keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.searchResultCard}
-                onPress={() => {
-                  navigateToVendor(item);
-                  setSearchQuery(''); // Clear search when navigating
+              <SearchResultsCard
+                vendor={item}
+                onPress={(selectedVendor) => {
+                  // Receive the vendor object back
+                  navigateToVendor(selectedVendor); // Use existing navigation function
+                  setSearchQuery(""); // Clear search query here
                 }}
-              >
-                <Text style={styles.searchResultName}>{item.name}</Text>
-                <Text style={styles.searchResultCuisine}>{item.cuisineType}</Text>
-                <View style={styles.searchResultRating}>
-                  <FontAwesome name="star" size={12} color={Colors.primary} />
-                  <Text style={styles.searchResultRatingText}> {item.rating.toFixed(1)}</Text>
-                </View>
-              </TouchableOpacity>
+              />
             )}
           />
         </View>
@@ -603,71 +588,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#333',
   },
-  vendorCard: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  vendorCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  closeButton: {
-    padding: 5,
-  },
-  favoriteButton: {
-    padding: 5,
-  },
-  vendorName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  vendorCuisine: {
-    color: '#666',
-    marginBottom: 5,
-  },
-  vendorRatingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  ratingStars: {
-    flexDirection: 'row',
-    marginRight: 5,
-  },
-  vendorRating: {
-    fontWeight: 'bold',
-  },
-  vendorDescription: {
-    color: '#333',
-    marginBottom: 10,
-  },
-  vendorHours: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  vendorDetailsButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 25,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  vendorDetailsText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
   searchResultsContainer: {
     position: 'absolute',
     bottom: 20,
@@ -676,36 +596,6 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     zIndex: 1,
     height: 120,
-  },
-  searchResultCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 15,
-    marginRight: 10,
-    width: 150,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  searchResultName: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  searchResultCuisine: {
-    color: '#666',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  searchResultRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchResultRatingText: {
-    fontSize: 12,
-    color: '#333',
   },
   // Filter Modal Styles
   modalContainer: {

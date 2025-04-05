@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList,
-  TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator
+  TextInput, TouchableOpacity, ScrollView, ActivityIndicator
  } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import Colors from '../../constants/colors';
 import { sampleVendors, Vendor, isVendorOpen } from '../../models/Vendor';
 import { useFavorites } from '../../context/FavoritesContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import VendorListItem from '../../components/VendorListItem';
 
 // Sample data - will be replaced with real data from backend later
 const SAMPLE_VENDORS = [
@@ -77,63 +78,13 @@ export default function VendorsScreen() {
   }
 
   const renderVendorItem = ({ item }: { item: Vendor }) => {
-    const isOpen = isVendorOpen(item);
-    
     return (
-      <TouchableOpacity 
-        style={styles.vendorCard}
-        onPress={() => handleVendorPress(item.id)}
-      >
-        <View style={styles.vendorImageContainer}>
-          {item.photos.length > 0 ? (
-            <Image source={{ uri: item.photos[0] }} style={styles.vendorImage} />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <FontAwesome name="cutlery" size={30} color="#ccc" />
-            </View>
-          )}
-        </View>
-        
-        <View style={styles.vendorInfo}>
-          <View style={styles.vendorHeader}>
-            <Text style={styles.vendorName}>{item.name}</Text>
-            <TouchableOpacity
-              onPress={() => toggleFavorite(item.id)}
-              style={styles.favoriteButton}
-            >
-              <FontAwesome 
-                name={isFavorite(item.id) ? "heart" : "heart-o"} 
-                size={22} 
-                color={isFavorite(item.id) ? Colors.primary : "#888"} 
-              />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.cuisineType}>{item.cuisineType}</Text>
-          
-          <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map(star => (
-              <FontAwesome
-                key={star}
-                name="star"
-                size={14}
-                color={star <= item.rating ? Colors.primary : '#ddd'}
-                style={{ marginRight: 2 }}
-              />
-            ))}
-            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-          </View>
-          
-          <Text 
-            style={[
-              styles.statusLabel, 
-              isOpen ? styles.openLabel : styles.closedLabel
-            ]}
-          >
-            {isOpen ? 'Open Now' : 'Closed'}
-          </Text>
-        </View>
-      </TouchableOpacity>
+      <VendorListItem
+        vendor={item}
+        onPress={handleVendorPress}
+        isFavorite={isFavorite(item.id)} 
+        onToggleFavorite={toggleFavorite}
+      />
     );
   };
 
@@ -321,84 +272,6 @@ const styles = StyleSheet.create({
   },
   vendorsList: {
     paddingBottom: 20,
-  },
-  vendorCard: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginBottom: 16,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  vendorImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginRight: 12,
-  },
-  vendorImage: {
-    width: '100%',
-    height: '100%',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f2f2f2',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  vendorInfo: {
-    flex: 1,
-  },
-  vendorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  vendorName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    flex: 1,
-    marginBottom: 4,
-  },
-  favoriteButton: {
-    padding: 2,
-  },
-  cuisineType: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  ratingText: {
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  statusLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-  },
-  openLabel: {
-    backgroundColor: '#e6f7ed',
-    color: '#00a651',
-  },
-  closedLabel: {
-    backgroundColor: '#ffeeee',
-    color: '#d32f2f',
   },
   emptyState: {
     flex: 1,
