@@ -14,6 +14,7 @@ export interface Vendor {
     reviews: Review[];
     operatingHours: OperatingHours;
     contactInfo: ContactInfo;
+    options?: { [groupName: string]: string[]}
     isOpen?: boolean;
   }
   
@@ -23,7 +24,6 @@ export interface Vendor {
     description: string;
     price: number;
     photo?: string;
-    options?: MenuOptionGroup[];
   }
 
   export interface MenuOption {
@@ -86,7 +86,7 @@ export interface Vendor {
     const now = new Date();
     const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
     
-    // Convert the day name to the property name in our OperatingHours interface
+    // Convert the day name to the property name in oeratingHours interface
     let day: keyof OperatingHours;
     switch(dayName) {
       case 'monday': day = 'monday'; break;

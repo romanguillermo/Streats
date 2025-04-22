@@ -48,7 +48,7 @@ const MapVendorCard: React.FC<MapVendorCardProps> = ({
       <Text style={styles.vendorCuisine}>{vendor.cuisineType}</Text>
 
       <View style={styles.vendorRatingContainer}>
-        {vendor.rating !== undefined && vendor.rating !== null ? (
+        {vendor.rating !== undefined && vendor.rating !== null && vendor.rating > 0 ? (
           <>
             <View style={styles.ratingStars}>
               {[1, 2, 3, 4, 5].map((star) => (
@@ -56,7 +56,7 @@ const MapVendorCard: React.FC<MapVendorCardProps> = ({
                   key={star}
                   name="star"
                   size={16}
-                  color={star <= vendor.rating! ? Colors.primary : "#ddd"} // Added non-null assertion (!) as we checked above
+                  color={star <= vendor.rating! ? Colors.primary : "#ddd"}
                   style={{ marginRight: 2 }}
                 />
               ))}

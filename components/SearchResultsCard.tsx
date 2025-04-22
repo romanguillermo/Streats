@@ -18,7 +18,7 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({ vendor, onPress }) 
       <Text style={styles.searchResultName}>{vendor.name}</Text>
       <Text style={styles.searchResultCuisine}>{vendor.cuisineType}</Text>
       <View style={styles.searchResultRating}>
-        {vendor.rating !== undefined && vendor.rating !== null ? (
+        {vendor.rating !== undefined && vendor.rating !== null && vendor.rating > 0 ? (
           <>
             <FontAwesome name="star" size={12} color={Colors.primary} />
             <Text style={styles.searchResultRatingText}>

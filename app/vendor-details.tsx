@@ -21,6 +21,7 @@ import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour }
 import ReviewModal from '../components/ReviewModal';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import MenuOptionsDisplay from '../components/MenuOptionsDisplay';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
@@ -69,6 +70,7 @@ export default function VendorDetailsScreen() {
             reviews: data.reviews || [],
             operatingHours: data.operatingHours || {},
             contactInfo: data.contactInfo || {},
+            options: data.options || {},
           });
         } else {
           console.log("No such vendor document!");
@@ -486,6 +488,10 @@ export default function VendorDetailsScreen() {
           {/* Menu Tab */}
           {activeTab === 'menu' && (
             <>
+              {/* Render Options Component first */}
+              {vendor.options && <MenuOptionsDisplay options={vendor.options} />}
+
+              {/* Menu Items */}
               {vendor.menu.length > 0 ? (
                 <FlatList
                   data={vendor.menu}
@@ -941,4 +947,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  emptyState: {
+    padding: 20,
+    alignItems: 'center',
+ },
 });

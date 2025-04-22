@@ -359,7 +359,7 @@ export default function MapScreen() {
                       <FontAwesome name="star" size={14} color={Colors.primary} />
                       <Text style={styles.calloutRatingText}>
                         {" "}
-                        {vendor.rating.toFixed(1)}
+                        {vendor.rating!.toFixed(1)}
                       </Text>
                     </>
                   ) : (
