@@ -11,6 +11,11 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import { signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  onAuthStateChanged,
+ } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import Colors from '../../constants/colors';
 import * as Location from 'expo-location';
@@ -26,7 +31,7 @@ export default function AuthScreen() {
 
   // Check if user is already authenticated
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         // User is already signed in, redirect to location-permission
         router.replace('/location-permission');
@@ -41,14 +46,14 @@ export default function AuthScreen() {
 
       if (isLogin) {
         // Login
-        await auth.signInWithEmailAndPassword(email, password);
+        await signInWithEmailAndPassword(auth, email, password);
         console.log('Logged in successfully');
         router.replace('/location-permission');
       } else {
         // Signup
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
-          await userCredential.user.updateProfile({ displayName: name });
+          await updateProfile(userCredential.user, { displayName: name });
         }
         router.replace('/location-permission');
       }

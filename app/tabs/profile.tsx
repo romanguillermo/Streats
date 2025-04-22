@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert, FlatList, ActivityIndicator } from 'react-native';
+import { signOut } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 import Colors from '../../constants/colors';
@@ -22,7 +23,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut();
+      await signOut(auth);
       router.replace('/');
     } catch (error: any) {
       Alert.alert('Error', 'Failed to sign out. Please try again.');

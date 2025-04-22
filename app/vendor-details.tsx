@@ -9,15 +9,18 @@ import {
   FlatList,
   Linking,
   Platform,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { auth } from '../config/firebaseConfig';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import Colors from '../constants/colors';
-import { sampleVendors, Vendor, MenuItem, isVendorOpen, getTodayHours, Review } from '../models/Vendor';
+import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour } from '../models/Vendor';
 import ReviewModal from '../components/ReviewModal';
+import { db } from '../config/firebaseConfig';
+import { doc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
@@ -26,6 +29,8 @@ export default function VendorDetailsScreen() {
   const { isFavorite, addFavorite, removeFavorite, favorites } = useFavorites();
 
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('menu');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
@@ -34,15 +39,51 @@ export default function VendorDetailsScreen() {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    if (id) {
-      const foundVendor = sampleVendors.find(v => v.id === id);
-      if (foundVendor) {
-        setVendor(foundVendor);
-      } else {
-        Alert.alert('Error', 'Vendor not found');
-        router.back();
+    const fetchVendorDetails = async () => {
+      if (!id || typeof id !== 'string') {
+        setError("Invalid Vendor ID.");
+        setIsLoading(false);
+        return;
       }
-    }
+  
+      setIsLoading(true);
+      setError(null);
+  
+      try {
+        const vendorDocRef = doc(db, 'vendors', id); 
+        const docSnap: DocumentSnapshot<DocumentData> = await getDoc(vendorDocRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setVendor({
+            id: docSnap.id,
+            name: data.name || 'Unnamed Vendor',
+            description: data.description || '',
+            cuisineType: data.cuisineType || 'Unknown',
+            location: {
+              latitude: data.location?.latitude || 0,
+              longitude: data.location?.longitude || 0,
+            },
+            menu: data.menu || [],
+            photos: data.photos || [],
+            rating: data.rating !== undefined ? data.rating : 0,
+            reviews: data.reviews || [],
+            operatingHours: data.operatingHours || {},
+            contactInfo: data.contactInfo || {},
+          });
+        } else {
+          console.log("No such vendor document!");
+          setError("Vendor not found.");
+          setVendor(null);
+        }
+      } catch (err: any) {
+        console.error("Error fetching vendor details:", err);
+        setError("Failed to load vendor details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchVendorDetails();
   }, [id]);
 
   useEffect(() => {
@@ -112,7 +153,7 @@ export default function VendorDetailsScreen() {
           {day.charAt(0).toUpperCase() + day.slice(1)}
         </Text>
         <Text style={[styles.hoursText, isToday && styles.todayText]}>
-          {hours ? `${hours.open} - ${hours.close}` : 'Closed'}
+        {hours ? `${formatTo12Hour(hours.open)} - ${formatTo12Hour(hours.close)}` : 'Closed'}
         </Text>
       </View>
     );
@@ -293,7 +334,38 @@ export default function VendorDetailsScreen() {
     );
   };
 
-  return (      
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <FontAwesome name="exclamation-triangle" size={40} color={Colors.secondary.red || 'red'} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!vendor) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Vendor data could not be loaded.</Text>
+         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+           <Text style={styles.backButtonText}>Go Back</Text>
+         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
       <View style={styles.container}>
         <TouchableOpacity 
           style={{
@@ -316,7 +388,7 @@ export default function VendorDetailsScreen() {
         {/* Vendor Header */}
         <View style={styles.header}>
           <View style={styles.vendorImageContainer}>
-            {vendor.photos.length > 0 ? (
+            {vendor.photos && vendor.photos.length > 0 && vendor.photos[0] ? (
               <Image 
                 source={{ uri: vendor.photos[0] }} 
                 style={styles.vendorImage} 
@@ -333,16 +405,22 @@ export default function VendorDetailsScreen() {
             <Text style={styles.vendorCuisine}>{vendor.cuisineType}</Text>
             
             <View style={styles.ratingContainer}>
-              {[1, 2, 3, 4, 5].map(star => (
-                <FontAwesome
-                  key={star}
-                  name="star"
-                  size={18}
-                  color={star <= vendor.rating ? Colors.primary : '#ddd'}
-                  style={{ marginRight: 2 }}
-                />
-              ))}
-              <Text style={styles.ratingText}> {vendor.rating.toFixed(1)}</Text>
+              {vendor.rating !== undefined && vendor.rating !== null && vendor.rating > 0 ? (
+                <>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <FontAwesome
+                      key={star}
+                      name="star"
+                      size={18}
+                      color={star <= vendor.rating! ? Colors.primary : '#ddd'}
+                      style={{ marginRight: 2 }}
+                    />
+                  ))}
+                  <Text style={styles.ratingText}> {vendor.rating.toFixed(1)}</Text>
+                </>
+              ) : (
+                <Text style={styles.noReviewsText}>No reviews yet</Text> 
+              )}
             </View>
 
             <View style={styles.statusContainer}>
@@ -473,25 +551,32 @@ export default function VendorDetailsScreen() {
           {activeTab === 'reviews' && (
             <>
               <View style={styles.reviewsSummary}>
-                <Text style={styles.ratingLarge}>{vendor.rating.toFixed(1)}</Text>
-                <View style={styles.ratingStarsLarge}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FontAwesome
-                      key={star}
-                      name="star"
-                      size={24}
-                      color={star <= vendor.rating ? Colors.primary : '#ddd'}
-                      style={{ marginRight: 4 }}
-                    />
-                  ))}
-                </View>
+                {vendor.rating !== undefined && vendor.rating !== null ? (
+                  <>
+                    <Text style={styles.ratingLarge}>{vendor.rating.toFixed(1)}</Text>
+                    <View style={styles.ratingStarsLarge}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <FontAwesome
+                          key={star}
+                          name="star"
+                          size={24}
+                          color={star <= vendor.rating! ? Colors.primary : '#ddd'}
+                          style={{ marginRight: 4 }}
+                        />
+                      ))}
+                    </View>
+                  </>
+                ) : (
+                  <Text style={styles.noReviewsTextLarge}>No Reviews Yet</Text>
+                )}
                 <Text style={styles.reviewCount}>
                   Based on {vendor.reviews.length} {vendor.reviews.length === 1 ? 'review' : 'reviews'}
                 </Text>
               </View>
+
               
               {/* Display all reviews */}
-              {vendor.reviews.map(review => renderReviewItem(review))}
+              {vendor.reviews.map(review => { return renderReviewItem(review);})}
               
               {vendor.reviews.length === 0 && (
                 <View style={styles.emptyState}>
@@ -594,6 +679,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
+    minHeight: 20, // Ensure container has height even when showing text
   },
   ratingText: {
     fontSize: 16,
@@ -780,6 +866,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
+  noReviewsText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  noReviewsTextLarge: {
+    fontSize: 18,
+    color: '#666',
+    fontWeight: '500',
+    marginBottom: 10,
+  },
   emptyState: {
     padding: 20,
     alignItems: 'center',
@@ -818,5 +915,30 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 5,
     fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: Colors.background || '#fff',
+  },
+  errorText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: Colors.secondary.red || 'red', 
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+  },
+  backButtonText: {
+    color: Colors.secondary.white || '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

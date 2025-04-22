@@ -48,20 +48,26 @@ const MapVendorCard: React.FC<MapVendorCardProps> = ({
       <Text style={styles.vendorCuisine}>{vendor.cuisineType}</Text>
 
       <View style={styles.vendorRatingContainer}>
-        <View style={styles.ratingStars}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <FontAwesome
-              key={star}
-              name="star"
-              size={16}
-              color={star <= vendor.rating ? Colors.primary : "#ddd"}
-              style={{ marginRight: 2 }}
-            />
-          ))}
-        </View>
-        <Text style={styles.vendorRating}>
-          {vendor.rating.toFixed(1)}
-        </Text>
+        {vendor.rating !== undefined && vendor.rating !== null ? (
+          <>
+            <View style={styles.ratingStars}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <FontAwesome
+                  key={star}
+                  name="star"
+                  size={16}
+                  color={star <= vendor.rating! ? Colors.primary : "#ddd"} // Added non-null assertion (!) as we checked above
+                  style={{ marginRight: 2 }}
+                />
+              ))}
+            </View>
+            <Text style={styles.vendorRating}>
+              {vendor.rating.toFixed(1)}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.noReviewsText}>No reviews yet</Text>
+        )}
       </View>
 
       <Text style={styles.vendorDescription}>{vendor.description}</Text>
@@ -161,6 +167,11 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
   },
+  noReviewsText: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+  }
 });
 
 export default MapVendorCard;

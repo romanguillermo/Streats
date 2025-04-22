@@ -18,9 +18,11 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFavorites } from '../../context/FavoritesContext';
 import Colors from '../../constants/colors';
-import { sampleVendors, Vendor, isVendorOpen, getTodayHours } from '../../models/Vendor';
+import { Vendor, isVendorOpen, getTodayHours } from '../../models/Vendor';
 import MapVendorCard from '../../components/MapVendorCard';
 import SearchResultsCard from '../../components/SearchResultsCard';
+import { db } from '../../config/firebaseConfig';
+import { collection, getDocs, query, QuerySnapshot, DocumentData } from 'firebase/firestore';
 
 interface FilterOptions {
   onlyOpen: boolean;
@@ -39,16 +41,63 @@ export default function MapScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-  const [filteredVendors, setFilteredVendors] = useState(sampleVendors);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [filters, setFilters] = useState<FilterOptions>({
     onlyOpen: false,
     cuisineTypes: [],
     minRating: 0
   });
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
-  const allCuisineTypes = [...new Set(sampleVendors.map(vendor => vendor.cuisineType))];
+  const allCuisineTypes = [...new Set(vendors.map(vendor => vendor.cuisineType))];
+
+  // Fetch vendors from Firestore
+  useEffect(() => {
+    const fetchVendors = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const vendorsCollectionRef = collection(db, 'vendors');
+        const q = query(vendorsCollectionRef);
+        const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
+
+        const fetchedVendors: Vendor[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedVendors.push({
+            id: doc.id,
+            name: data.name || 'Unnamed Vendor',
+            description: data.description || '',
+            cuisineType: data.cuisineType || 'Unknown',
+            location: {
+              latitude: data.location?.latitude || 0,
+              longitude: data.location?.longitude || 0,
+            },
+            menu: data.menu || [],
+            photos: data.photos || [],
+            rating: data.rating || 0,
+            reviews: data.reviews || [],
+            operatingHours: data.operatingHours || {},
+            contactInfo: data.contactInfo || {},
+          });
+        });
+
+        setVendors(fetchedVendors);
+        setFilteredVendors(fetchedVendors);
+      } catch (err: any) {
+        console.error("Error fetching vendors:", err);
+        setError("Failed to fetch vendors. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVendors();
+  }, []);
 
   useEffect(() => {
     const getLocation = async () => {
@@ -63,7 +112,6 @@ export default function MapScreen() {
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           });
-          setLoading(false);
           return;
         }
 
@@ -76,15 +124,13 @@ export default function MapScreen() {
         });
       } catch (error) {
         console.error("Error getting location:", error);
-         // Set default location if there's an error
+         // default location if error
         setMapRegion({
             latitude: 34.0522,
             longitude: -118.2437,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           });
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -93,7 +139,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     // Apply filters and search query to the vendors list
-    let result = sampleVendors;
+    let result = [...vendors];
     
     // Filter by search query
     if (searchQuery) {
@@ -117,12 +163,17 @@ export default function MapScreen() {
       );
     }
     
+    // Filter by minimum rating (only consider vendors with rating)
     if (filters.minRating > 0) {
-      result = result.filter(vendor => vendor.rating >= filters.minRating);
+      result = result.filter(vendor =>
+        vendor.rating !== undefined && 
+        vendor.rating !== null &&     
+        vendor.rating >= filters.minRating
+      );
     }
     
     setFilteredVendors(result);
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, vendors]);
 
   const toggleCuisineFilter = (cuisine: string) => {
     setFilters(prevFilters => {
@@ -183,11 +234,19 @@ export default function MapScreen() {
     );
   }
 
-  if (!mapRegion) {
-    return null; // Or some error message/fallback UI
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <FontAwesome name="exclamation-triangle" size={40} color={Colors.secondary?.red || 'red'} />
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
   }
 
-  // Check if we're on the web
+  if (!mapRegion) {
+    return null;
+  }
+
   if (Platform.OS === 'web') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -295,11 +354,17 @@ export default function MapScreen() {
                 <Text style={styles.calloutTitle}>{vendor.name}</Text>
                 <Text style={styles.calloutSubtitle}>{vendor.cuisineType}</Text>
                 <View style={styles.calloutRating}>
-                  <FontAwesome name="star" size={14} color={Colors.primary} />
-                  <Text style={styles.calloutRatingText}>
-                    {" "}
-                    {vendor.rating.toFixed(1)}
-                  </Text>
+                  {vendor.rating !== undefined && vendor.rating !== null ? (
+                    <>
+                      <FontAwesome name="star" size={14} color={Colors.primary} />
+                      <Text style={styles.calloutRatingText}>
+                        {" "}
+                        {vendor.rating.toFixed(1)}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.calloutNoReviewsText}>No reviews</Text>
+                  )}
                 </View>
               </View>
             </Callout>
@@ -597,7 +662,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     height: 120,
   },
-  // Filter Modal Styles
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -704,5 +768,23 @@ const styles = StyleSheet.create({
   applyButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  errorText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: Colors.secondary?.red || 'red',
+    textAlign: 'center',
+  },
+  calloutNoReviewsText: {
+    fontSize: 11,
+    color: '#888',
+    fontStyle: 'italic',
   },
 });

@@ -18,11 +18,17 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({ vendor, onPress }) 
       <Text style={styles.searchResultName}>{vendor.name}</Text>
       <Text style={styles.searchResultCuisine}>{vendor.cuisineType}</Text>
       <View style={styles.searchResultRating}>
-        <FontAwesome name="star" size={12} color={Colors.primary} />
-        <Text style={styles.searchResultRatingText}>
-          {" "}
-          {vendor.rating.toFixed(1)}
-        </Text>
+        {vendor.rating !== undefined && vendor.rating !== null ? (
+          <>
+            <FontAwesome name="star" size={12} color={Colors.primary} />
+            <Text style={styles.searchResultRatingText}>
+              {" "}
+              {vendor.rating.toFixed(1)}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.noReviewsTextSmall}>No reviews</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -58,6 +64,11 @@ const styles = StyleSheet.create({
   searchResultRatingText: {
     fontSize: 12,
     color: "#333",
+  },
+  noReviewsTextSmall: {
+    fontSize: 11,
+    color: "#888",
+    fontStyle: "italic",
   },
 });
 

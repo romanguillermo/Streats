@@ -52,16 +52,22 @@ const VendorListItem: React.FC<VendorListItemProps> = ({
         <Text style={styles.cuisineType}>{vendor.cuisineType}</Text>
             
         <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map(star => (
-            <FontAwesome
-              key={star}
-              name="star"
-              size={14}
-              color={star <= vendor.rating ? Colors.primary : '#ddd'}
-              style={{ marginRight: 2 }}
-            />
-            ))}
-            <Text style={styles.ratingText}>{vendor.rating.toFixed(1)}</Text>
+            { vendor.rating !== undefined && vendor.rating !== null ? ( // Check if rating exists
+                <>
+                    {[1, 2, 3, 4, 5].map(star => (
+                    <FontAwesome
+                        key={star}
+                        name="star"
+                        size={14}
+                        color={star <= vendor.rating! ? Colors.primary : '#ddd'} 
+                        style={{ marginRight: 2 }}
+                    />
+                    ))}
+                    <Text style={styles.ratingText}>{vendor.rating.toFixed(1)}</Text>
+                </>
+            ) : (
+                <Text style={styles.ratingText}>No reviews yet</Text> 
+            )}
         </View>
             
         <Text 

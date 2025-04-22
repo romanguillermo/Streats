@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import Colors from '../../constants/colors';
+import { sendPasswordResetEmail} from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 
 export default function ForgotPasswordScreen() {
@@ -18,7 +19,7 @@ export default function ForgotPasswordScreen() {
 
   const handleResetPassword = async () => {
     try {
-      await auth.sendPasswordResetEmail(email);
+      await sendPasswordResetEmail(auth, email);
       Alert.alert('Password Reset Email Sent', 'Please check your email to reset your password.');
     // navigate back to login screen ?
     // router.replace('/auth');

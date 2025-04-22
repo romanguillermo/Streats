@@ -5,33 +5,73 @@ import { StyleSheet, View, Text, FlatList,
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Colors from '../../constants/colors';
-import { sampleVendors, Vendor, isVendorOpen } from '../../models/Vendor';
+import { Vendor, isVendorOpen } from '../../models/Vendor';
 import { useFavorites } from '../../context/FavoritesContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VendorListItem from '../../components/VendorListItem';
+import { db } from '../../config/firebaseConfig';
+import { collection, getDocs, query, QuerySnapshot, DocumentData } from 'firebase/firestore';
 
-// Sample data - will be replaced with real data from backend later
-const SAMPLE_VENDORS = [
-  { id: '1', name: 'Taco Truck', cuisine: 'Mexican', rating: 4.5 },
-  { id: '2', name: 'Sushi Cart', cuisine: 'Japanese', rating: 4.7 },
-  { id: '3', name: 'Burger Stand', cuisine: 'American', rating: 4.2 },
-  { id: '4', name: 'Noodle House', cuisine: 'Chinese', rating: 4.6 },
-  { id: '5', name: 'Smoothie Spot', cuisine: 'Health', rating: 4.4 },
-];
 
 export default function VendorsScreen() {
   const router = useRouter();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredVendors, setFilteredVendors] = useState(sampleVendors);
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [onlyShowOpen, setOnlyShowOpen] = useState(false);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [filteredVendors, setFilteredVendors] = useState<Vendor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const cuisineTypes = [...new Set(sampleVendors.map(v => v.cuisineType))];
+  const [ error, setError ] = useState<string | null>(null);
+  const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
 
   useEffect(() => {
-    setIsLoading(true);
-    let result = [...sampleVendors];
+    const fetchVendors = async () => {
+      setIsLoading(true); // Start loading
+      setError(null); // Clear previous errors
+  
+      try {
+        const vendorsCollectionRef = collection(db, 'vendors'); // Reference 'vendors' collection
+        const q = query(vendorsCollectionRef); // Basic query (add sorting/filtering later)
+        const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q); // Fetch documents
+  
+        const fetchedVendors: Vendor[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          // Map Firestore data Vendor interface
+          fetchedVendors.push({
+            id: doc.id, 
+            name: data.name || 'Unnamed Vendor',
+            description: data.description || '',
+            cuisineType: data.cuisineType || 'Unknown',
+            location: {
+              latitude: data.location?.latitude || 0,
+              longitude: data.location?.longitude || 0,
+            },
+            menu: data.menu || [],
+            photos: data.photos || [],
+            rating: data.rating !== undefined ? data.rating : null,
+            reviews: data.reviews || [],
+            operatingHours: data.operatingHours || {},
+            contactInfo: data.contactInfo || {},
+          });
+        });
+  
+        setVendors(fetchedVendors); // Update main vendors state
+  
+      } catch (err: any) {
+        console.error("Error fetching vendors:", err);
+        setError("Failed to fetch vendors. Please try again later.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchVendors();
+  }, []);
+
+  useEffect(() => {
+    let result = [...vendors];
 
     // Apply cuisine filter
     if (selectedCuisine) {
@@ -51,12 +91,19 @@ export default function VendorsScreen() {
       );
     }
     setFilteredVendors(result);
-    setIsLoading(false);
-  }, [searchQuery, selectedCuisine, onlyShowOpen]);
+
+    // Update cuisine types whenever vendors data changes
+    if (vendors.length > 0) {
+      const uniqueCuisines = [...new Set(vendors.map(v => v.cuisineType))];
+      setCuisineTypes(uniqueCuisines);
+    } else {
+        setCuisineTypes([]);
+    }
+  }, [vendors, searchQuery, selectedCuisine, onlyShowOpen]);
 
   const handleVendorPress = (vendorId: string) => {
-    // Make sure the vendor exists before navigating
-  const vendor = sampleVendors.find(v => v.id === vendorId);
+    // Make sure vendor exists before navigating
+  const vendor = vendors.find(v => v.id === vendorId);
   if (vendor) {
     router.push(`/vendor-details?id=${vendorId}`);
   } else {
@@ -87,6 +134,17 @@ export default function VendorsScreen() {
       />
     );
   };
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <FontAwesome name="exclamation-triangle" size={40} color={Colors.secondary.red} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -290,5 +348,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
-  }
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: Colors.secondary.red,
+    textAlign: 'center',
+  },
 });

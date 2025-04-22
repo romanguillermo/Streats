@@ -10,6 +10,7 @@ import {
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { auth } from '../config/firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 import Colors from '../constants/colors'
 
 export default function LocationPermission() {
@@ -19,7 +20,7 @@ export default function LocationPermission() {
 
   useEffect(() => {
     // Check if the user is authenticated
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!user) {
         // User is not authenticated, redirect to auth screen
         router.replace('/auth/auth');
