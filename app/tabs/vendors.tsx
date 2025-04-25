@@ -54,7 +54,6 @@ export default function VendorsScreen() {
             reviews: data.reviews || [],
             operatingHours: data.operatingHours || {},
             contactInfo: data.contactInfo || {},
-            options: data.options || {},
           });
         });
   

@@ -7,23 +7,32 @@ export interface Vendor {
       latitude: number;
       longitude: number;
     };
-
-    menu: MenuItem[];
+    menu: { [categoryName: string]: MenuCategory };
     photos: string[];
     rating?: number | null;
     reviews: Review[];
     operatingHours: OperatingHours;
     contactInfo: ContactInfo;
-    options?: { [groupName: string]: string[]}
     isOpen?: boolean;
   }
   
   export interface MenuItem {
     id: string;
     name: string;
-    description: string;
-    price: number;
+    description?: string;
+    price?: number;
     photo?: string;
+    sizes?: MenuItemSize[];
+  }
+
+  export interface MenuCategory {
+    items: MenuItem[];
+    options?: { [groupName: string]: string[]};
+  }
+
+  export interface MenuItemSize {
+    size: string;
+    price: number;
   }
 
   export interface MenuOption {

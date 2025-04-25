@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   FlatList,
+  SectionList,
   Linking,
   Platform,
   Alert,
@@ -21,7 +22,7 @@ import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour }
 import ReviewModal from '../components/ReviewModal';
 import { db } from '../config/firebaseConfig';
 import { doc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import MenuOptionsDisplay from '../components/MenuOptionsDisplay';
+import MenuCategorySection from '../components/MenuCategorySection';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
@@ -70,7 +71,6 @@ export default function VendorDetailsScreen() {
             reviews: data.reviews || [],
             operatingHours: data.operatingHours || {},
             contactInfo: data.contactInfo || {},
-            options: data.options || {},
           });
         } else {
           console.log("No such vendor document!");
@@ -160,16 +160,6 @@ export default function VendorDetailsScreen() {
       </View>
     );
   };
-
-  const renderMenuItem = ({ item }: { item: MenuItem }) => (
-    <View style={styles.menuItem}>
-      <View style={styles.menuItemContent}>
-        <Text style={styles.menuItemName}>{item.name}</Text>
-        <Text style={styles.menuItemDescription}>{item.description}</Text>
-      </View>
-      <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
-    </View>
-  );
 
   if (!vendor) {
     return (
@@ -488,20 +478,18 @@ export default function VendorDetailsScreen() {
           {/* Menu Tab */}
           {activeTab === 'menu' && (
             <>
-              {/* Render Options Component first */}
-              {vendor.options && <MenuOptionsDisplay options={vendor.options} />}
-
-              {/* Menu Items */}
-              {vendor.menu.length > 0 ? (
-                <FlatList
-                  data={vendor.menu}
-                  renderItem={renderMenuItem}
-                  keyExtractor={item => item.id}
-                  scrollEnabled={false}
-                />
+              {vendor.menu && Object.keys(vendor.menu).length > 0 ? (
+                // Map over the categories in menu
+                Object.entries(vendor.menu).map(([categoryName, categoryData]) => (
+                  <MenuCategorySection
+                    key={categoryName}
+                    categoryName={categoryName}
+                    categoryData={categoryData}
+                  />
+                ))
               ) : (
                 <View style={styles.emptyState}>
-                  <Text>No menu items available.</Text>
+                  <Text>Menu information not available.</Text>
                 </View>
               )}
             </>
@@ -590,7 +578,7 @@ export default function VendorDetailsScreen() {
                 </View>
               )}
               
-              {/* Add or edit review button */}
+              {/* Add/edit review button */}
               {currentUser ? (
                 userReviews.length > 0 ? (
                   <TouchableOpacity 
@@ -745,30 +733,6 @@ const styles = StyleSheet.create({
   tabContent: {
     flex: 1,
     padding: 15,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuItemContent: {
-    flex: 1,
-    marginRight: 10,
-  },
-  menuItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  menuItemDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  menuItemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   infoContainer: {
     paddingBottom: 20,
@@ -947,8 +911,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  emptyState: {
-    padding: 20,
-    alignItems: 'center',
- },
+  
 });

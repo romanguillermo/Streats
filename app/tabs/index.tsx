@@ -144,12 +144,20 @@ export default function MapScreen() {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(vendor => 
-        vendor.name.toLowerCase().includes(query) || 
-        vendor.cuisineType.toLowerCase().includes(query) ||
-        vendor.description.toLowerCase().includes(query) ||
-        vendor.menu.some(item => item.name.toLowerCase().includes(query))
-      );
+      result = result.filter(vendor => {
+        // Check vendor name, cuisine, description
+        const basicMatch = vendor.name.toLowerCase().includes(query) || 
+                           vendor.cuisineType.toLowerCase().includes(query) ||
+                           vendor.description.toLowerCase().includes(query);
+        // Check menu items within each category
+        const menuMatch = Object.values(vendor.menu).some(category =>
+          category.items.some(item =>
+            item.name.toLowerCase().includes(query)
+          )
+        );
+
+        return basicMatch || menuMatch;
+      });
     }
     
     // Apply filters
