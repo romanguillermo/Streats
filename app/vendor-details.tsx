@@ -39,6 +39,7 @@ export default function VendorDetailsScreen() {
   const [userReviews, setUserReviews] = useState<Review[]>([])
 
   const currentUser = auth.currentUser;
+  const CATEGORY_ORDER = ["Food", "Drinks", "Add Ons"];
 
   useEffect(() => {
     const fetchVendorDetails = async () => {
@@ -479,14 +480,31 @@ export default function VendorDetailsScreen() {
           {activeTab === 'menu' && (
             <>
               {vendor.menu && Object.keys(vendor.menu).length > 0 ? (
-                // Map over the categories in menu
-                Object.entries(vendor.menu).map(([categoryName, categoryData]) => (
-                  <MenuCategorySection
-                    key={categoryName}
-                    categoryName={categoryName}
-                    categoryData={categoryData}
-                  />
-                ))
+                Object.keys(vendor.menu)
+                // Sort the available category names based on our predefined order
+                .sort((a, b) => {
+                  const indexA = CATEGORY_ORDER.indexOf(a);
+                  const indexB = CATEGORY_ORDER.indexOf(b);
+                  // If both in list, sort by that order
+                  if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+                  }
+                  if (indexA !== -1) return -1;
+                  if (indexB !== -1) return 1;
+                  
+                  return 0;
+                })
+                // Map over sortedmcategory names
+                .map((categoryName) => {
+                  const categoryData = vendor.menu![categoryName]; 
+                  return (
+                    <MenuCategorySection
+                      key={categoryName}
+                      categoryName={categoryName}
+                      categoryData={categoryData}
+                    />
+                  );
+                })
               ) : (
                 <View style={styles.emptyState}>
                   <Text>Menu information not available.</Text>

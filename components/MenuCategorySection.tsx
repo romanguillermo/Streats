@@ -58,13 +58,11 @@ const MenuCategorySection: React.FC<MenuCategorySectionProps> = ({
         <View style={styles.categoryOptionsContainer}>
             {Object.entries(categoryData.options).map(([groupName, choices]) => (
                 <View key={groupName} style={styles.optionGroup}>
-                    <Text style={styles.optionGroupName}>{groupName}:</Text>
-                    <View style={styles.choicesContainer}>
-                        {choices.map((choice, index) => (
-                             <Text key={index} style={styles.choiceText}>{choice}{index < choices.length - 1 ? ', ' : ''}</Text>
-                        ))}
-                    </View>
-                </View>
+                <Text style={styles.optionGroupName}>{groupName}:</Text>
+                {choices.map((choice, index) => (
+                     <Text key={index} style={styles.optionChoiceItem}> • {choice}</Text> // Add a bullet point
+                ))}
+            </View>
              ))}
         </View>
     );
@@ -99,97 +97,91 @@ const MenuCategorySection: React.FC<MenuCategorySectionProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#f9f9f9',
-  },
-  categoryName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-  },
-  content: {
-    paddingHorizontal: 15,
-    paddingTop: 5,
-    paddingBottom: 15,
-  },
-  // Category Options
-  categoryOptionsContainer: {
-    paddingVertical: 10,
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-   optionGroup: {
-     marginBottom: 5,
-     flexDirection: 'row',
-     flexWrap: 'wrap',  
-     alignItems: 'baseline',
-   },
-   optionGroupName: {
-     fontSize: 15,
-     fontWeight: '600',
-     marginRight: 5,
-     color: Colors.text,
-   },
-   choicesContainer: {
-     flexDirection: 'row',
-     flexWrap: 'wrap',
-   },
-   choiceText: {
-     fontSize: 15,
-     color: '#444',
-     marginRight: 5,
-   },
-
-  // Menu Items
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    alignItems: 'flex-start', // Align items to top if desc wraps
-  },
-  menuItemInfo: {
-    flex: 1, // Allow text to take up space
-    marginRight: 10,
-  },
-  menuItemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 3,
-  },
-  menuItemDescription: {
-    fontSize: 13,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  menuItemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'right',
-  },
-   sizesContainer: {
-    alignItems: 'flex-end', // Align size prices to right
-   },
-   sizePriceText: {
-     fontSize: 14,
-     fontWeight: '500',
-     color: '#333',
-   },
+    container: {
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        backgroundColor: '#fff',
+        overflow: 'hidden',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        backgroundColor: '#f9f9f9',
+    },
+    categoryName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text,
+    },
+    content: {
+        paddingHorizontal: 15,
+        paddingTop: 5,
+        paddingBottom: 15,
+    },
+    // Category Options
+    categoryOptionsContainer: {
+        paddingVertical: 10,
+        marginBottom: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+    },
+    optionGroup: {
+        marginBottom: 8,
+    },
+    optionGroupName: {
+        fontSize: 15,
+        fontWeight: '600',
+        marginRight: 4,
+        color: Colors.text,
+    },
+    optionChoiceItem: {
+        fontSize: 15,
+        color: '#444',
+        marginLeft: 10,
+        marginBottom: 2,
+        lineHeight: 20,
+    },
+    // Menu Items
+    menuItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+        alignItems: 'flex-start',
+    },
+    menuItemInfo: {
+        flex: 1,
+        marginRight: 10,
+    },
+    menuItemName: {
+        fontSize: 16,
+        fontWeight: '500',
+        marginBottom: 3,
+    },
+    menuItemDescription: {
+        fontSize: 13,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+    menuItemPrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'right',
+    },
+    sizesContainer: {
+        alignItems: 'flex-end', // Align size prices to right
+    },
+    sizePriceText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#333',
+    },
 });
 
 export default MenuCategorySection;
