@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert, FlatList, ActivityIndicator } from 'react-native';
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
 import { router } from 'expo-router';
 import Colors from '../../constants/colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { navigate } from 'expo-router/build/global-state/routing';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import EditProfileModal from '../../components/EditProfileModal';
 
 export default function ProfileScreen() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -19,6 +21,31 @@ export default function ProfileScreen() {
       setUserEmail(user.email);
     }
   }, []);
+
+  const handleSaveProfile = async (newName: string) => {
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert('Error', 'You seem to be logged out.');
+      throw new Error("User not found"); // Throw error to be caught in modal
+    }
+    if (newName.trim() === user.displayName) {
+       setIsEditModalVisible(false); // Close if name didn't change
+       return; // Exit early
+    }
+
+    try {
+      await updateProfile(user, {
+        displayName: newName.trim(),
+      });
+      setUserName(newName.trim()); // Update local state on success
+      setIsEditModalVisible(false); // Close modal on success
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      throw error; // Re-throw error so modal knows it failed
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -54,7 +81,7 @@ export default function ProfileScreen() {
         <Text style={styles.userName}>{userName || 'User'}</Text>
         <Text style={styles.userEmail}>{userEmail || 'email@example.com'}</Text>
         
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => setIsEditModalVisible(true)}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
@@ -82,6 +109,13 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutButtonText}>Sign Out</Text>
       </TouchableOpacity>
+
+      <EditProfileModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        onSave={handleSaveProfile}
+        initialName={userName || ''}
+      />
     </SafeAreaView>
   );
 }
