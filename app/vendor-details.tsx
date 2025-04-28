@@ -11,7 +11,8 @@ import {
   Linking,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator, 
+  Modal,
 } from 'react-native';
 import { auth, db } from '../config/firebaseConfig';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -37,7 +38,10 @@ export default function VendorDetailsScreen() {
   const [activeTab, setActiveTab] = useState('menu');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
-  const [userReviews, setUserReviews] = useState<Review[]>([])
+  const [userReviews, setUserReviews] = useState<Review[]>([]);
+
+  const [isImageViewVisible, setImageViewVisible] = useState(false); 
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   const currentUser = auth.currentUser;
   const CATEGORY_ORDER = ["Food", "Drinks", "Add Ons"];
@@ -510,130 +514,188 @@ export default function VendorDetailsScreen() {
     );
   }
 
+  const renderPhotoItem = ({ item, index }: { item: string, index: number }) => {
+    const handlePhotoPress = () => {
+      setSelectedImageUri(item); // Set the URI of the clicked image
+      setImageViewVisible(true); // Show the modal
+    };
+    // Basic image display - can be enhanced (e.g., lightbox)
+    return (
+      <TouchableOpacity style={styles.photoItemContainer} onPress={handlePhotoPress}>
+        <Image source={{ uri: item }} style={styles.photoItem} resizeMode="cover" />
+      </TouchableOpacity>
+    );
+  };
+
+
   return (
-      <View style={styles.container}>
-        <TouchableOpacity 
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            zIndex: 10,
-            backgroundColor: 'white',
-            borderRadius: 20,
-            padding: 8,
-          }}
-          onPress={toggleFavorite}
-        >
-          <FontAwesome 
-            name={isFavorite(vendor.id) ? "heart" : "heart-o"} 
-            size={24} 
-            color={isFavorite(vendor.id) ? Colors.primary : "#888"} 
-          />
-        </TouchableOpacity>
-        {/* Vendor Header */}
-        <View style={styles.header}>
-          <View style={styles.vendorImageContainer}>
-            {vendor.photos && vendor.photos.length > 0 && vendor.photos[0] ? (
-              <Image 
-                source={{ uri: vendor.photos[0] }} 
-                style={styles.vendorImage} 
-              />
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          zIndex: 10,
+          backgroundColor: "white",
+          borderRadius: 20,
+          padding: 8,
+        }}
+        onPress={toggleFavorite}
+      >
+        <FontAwesome
+          name={isFavorite(vendor.id) ? "heart" : "heart-o"}
+          size={24}
+          color={isFavorite(vendor.id) ? Colors.primary : "#888"}
+        />
+      </TouchableOpacity>
+      {/* Vendor Header */}
+      <View style={styles.header}>
+        <View style={styles.vendorImageContainer}>
+          {vendor.photos && vendor.photos.length > 0 && vendor.photos[0] ? (
+            <Image
+              source={{ uri: vendor.photos[0] }}
+              style={styles.vendorImage}
+            />
+          ) : (
+            <View style={styles.placeholderImage}>
+              <FontAwesome name="cutlery" size={40} color="#ccc" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.vendorInfo}>
+          <Text style={styles.vendorName}>{vendor.name}</Text>
+          <Text style={styles.vendorCuisine}>{vendor.cuisineType}</Text>
+
+          <View style={styles.ratingContainer}>
+            {vendor.rating !== undefined &&
+            vendor.rating !== null &&
+            vendor.rating > 0 ? (
+              <>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <FontAwesome
+                    key={star}
+                    name="star"
+                    size={18}
+                    color={star <= vendor.rating! ? Colors.primary : "#ddd"}
+                    style={{ marginRight: 2 }}
+                  />
+                ))}
+                <Text style={styles.ratingText}>
+                  {" "}
+                  {vendor.rating.toFixed(1)}
+                </Text>
+                <Text style={styles.reviewCountText}>
+                  {" "}
+                  ({vendor.reviews.length})
+                </Text>
+              </>
             ) : (
-              <View style={styles.placeholderImage}>
-                <FontAwesome name="cutlery" size={40} color="#ccc" />
-              </View>
+              <Text style={styles.noReviewsText}>No reviews yet</Text>
             )}
           </View>
-          
-          <View style={styles.vendorInfo}>
-            <Text style={styles.vendorName}>{vendor.name}</Text>
-            <Text style={styles.vendorCuisine}>{vendor.cuisineType}</Text>
-            
-            <View style={styles.ratingContainer}>
-              {vendor.rating !== undefined && vendor.rating !== null && vendor.rating > 0 ? (
-                <>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FontAwesome
-                      key={star}
-                      name="star"
-                      size={18}
-                      color={star <= vendor.rating! ? Colors.primary : '#ddd'}
-                      style={{ marginRight: 2 }}
-                    />
-                  ))}
-                  <Text style={styles.ratingText}> {vendor.rating.toFixed(1)}</Text>
-                  <Text style={styles.reviewCountText}> ({vendor.reviews.length})</Text>
-                </>
-              ) : (
-                <Text style={styles.noReviewsText}>No reviews yet</Text> 
-              )}
-            </View>
 
-            <View style={styles.statusContainer}>
-              {isVendorOpen(vendor) ? (
-                <Text style={styles.openStatus}>Open Now • {getTodayHours(vendor)}</Text>
-              ) : (
-                <Text style={styles.closedStatus}>Closed • Opens {getTodayHours(vendor)}</Text>
-              )}
-            </View>
+          <View style={styles.statusContainer}>
+            {isVendorOpen(vendor) ? (
+              <Text style={styles.openStatus}>
+                Open Now • {getTodayHours(vendor)}
+              </Text>
+            ) : (
+              <Text style={styles.closedStatus}>
+                Closed • Opens {getTodayHours(vendor)}
+              </Text>
+            )}
+          </View>
 
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={navigateToVendor}
+            >
+              <FontAwesome name="map-marker" size={20} color={Colors.primary} />
+              <Text style={styles.actionButtonText}>Directions</Text>
+            </TouchableOpacity>
+
+            {vendor.contactInfo.phone && (
+              <TouchableOpacity
                 style={styles.actionButton}
-                onPress={navigateToVendor}
+                onPress={callVendor}
               >
-                <FontAwesome name="map-marker" size={20} color={Colors.primary} />
-                <Text style={styles.actionButtonText}>Directions</Text>
+                <FontAwesome name="phone" size={20} color={Colors.primary} />
+                <Text style={styles.actionButtonText}>Call</Text>
               </TouchableOpacity>
-              
-              {vendor.contactInfo.phone && (
-                <TouchableOpacity 
-                  style={styles.actionButton}
-                  onPress={callVendor}
-                >
-                  <FontAwesome name="phone" size={20} color={Colors.primary} />
-                  <Text style={styles.actionButtonText}>Call</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
           </View>
         </View>
+      </View>
 
-        {/* Tab Navigation */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'menu' && styles.activeTab]}
-            onPress={() => setActiveTab('menu')}
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        {/* Menu tab */}
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "menu" && styles.activeTab]}
+          onPress={() => setActiveTab("menu")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "menu" && styles.activeTabText,
+            ]}
           >
-            <Text style={[styles.tabText, activeTab === 'menu' && styles.activeTabText]}>
-              Menu
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'info' && styles.activeTab]}
-            onPress={() => setActiveTab('info')}
+            Menu
+          </Text>
+        </TouchableOpacity>
+        {/* Info tab */}
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "info" && styles.activeTab]}
+          onPress={() => setActiveTab("info")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "info" && styles.activeTabText,
+            ]}
           >
-            <Text style={[styles.tabText, activeTab === 'info' && styles.activeTabText]}>
-              Info
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'reviews' && styles.activeTab]}
-            onPress={() => setActiveTab('reviews')}
+            Info
+          </Text>
+        </TouchableOpacity>
+        {/* Reviews tab */}
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "reviews" && styles.activeTab]}
+          onPress={() => setActiveTab("reviews")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "reviews" && styles.activeTabText,
+            ]}
           >
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.activeTabText]}>
-              Reviews
-            </Text>
-          </TouchableOpacity>
-        </View>
+            Reviews
+          </Text>
+        </TouchableOpacity>
+        {/* Photos tab */}
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "photos" && styles.activeTab]}
+          onPress={() => setActiveTab("photos")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "photos" && styles.activeTabText,
+            ]}
+          >
+            Photos
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* Tab Content */}
-        <ScrollView style={styles.tabContent}>
-          {/* Menu Tab */}
-          {activeTab === 'menu' && (
-            <>
-              {vendor.menu && Object.keys(vendor.menu).length > 0 ? (
-                Object.keys(vendor.menu)
+      {/* Tab Content */}
+      <View style={styles.tabContent}>
+        {/* Menu Tab */}
+        {activeTab === "menu" && (
+          <ScrollView>
+            {vendor.menu && Object.keys(vendor.menu).length > 0 ? (
+              Object.keys(vendor.menu)
                 // Sort the available category names based on our predefined order
                 .sort((a, b) => {
                   const indexA = CATEGORY_ORDER.indexOf(a);
@@ -644,12 +706,12 @@ export default function VendorDetailsScreen() {
                   }
                   if (indexA !== -1) return -1;
                   if (indexB !== -1) return 1;
-                  
+
                   return 0;
                 })
                 // Map over sortedmcategory names
                 .map((categoryName) => {
-                  const categoryData = vendor.menu![categoryName]; 
+                  const categoryData = vendor.menu![categoryName];
                   return (
                     <MenuCategorySection
                       key={categoryName}
@@ -658,138 +720,246 @@ export default function VendorDetailsScreen() {
                     />
                   );
                 })
-              ) : (
-                <View style={styles.emptyState}>
-                  <Text>Menu information not available.</Text>
-                </View>
-              )}
-            </>
-          )}
+            ) : (
+              <View style={styles.emptyState}>
+                <Text>Menu information not available.</Text>
+              </View>
+            )}
+          </ScrollView>
+        )}
 
-          {/* Info Tab */}
-          {activeTab === 'info' && (
+        {/* Info Tab */}
+        {activeTab === "info" && (
+          <ScrollView style={styles.infoScrollView}>
             <View style={styles.infoContainer}>
               <View style={styles.infoSection}>
                 <Text style={styles.infoTitle}>About</Text>
                 <Text style={styles.infoText}>{vendor.description}</Text>
               </View>
-              
+
               <View style={styles.infoSection}>
                 <Text style={styles.infoTitle}>Hours</Text>
-                {renderDay('Monday', vendor.operatingHours.monday)}
-                {renderDay('Tuesday', vendor.operatingHours.tuesday)}
-                {renderDay('Wednesday', vendor.operatingHours.wednesday)}
-                {renderDay('Thursday', vendor.operatingHours.thursday)}
-                {renderDay('Friday', vendor.operatingHours.friday)}
-                {renderDay('Saturday', vendor.operatingHours.saturday)}
-                {renderDay('Sunday', vendor.operatingHours.sunday)}
+                {renderDay("Monday", vendor.operatingHours.monday)}
+                {renderDay("Tuesday", vendor.operatingHours.tuesday)}
+                {renderDay("Wednesday", vendor.operatingHours.wednesday)}
+                {renderDay("Thursday", vendor.operatingHours.thursday)}
+                {renderDay("Friday", vendor.operatingHours.friday)}
+                {renderDay("Saturday", vendor.operatingHours.saturday)}
+                {renderDay("Sunday", vendor.operatingHours.sunday)}
               </View>
-              
+
               <View style={styles.infoSection}>
                 <Text style={styles.infoTitle}>Contact</Text>
                 {vendor.contactInfo.phone && (
-                  <TouchableOpacity style={styles.contactItem} onPress={callVendor}>
-                    <FontAwesome name="phone" size={16} color="#666" style={styles.contactIcon} />
-                    <Text style={styles.contactText}>{vendor.contactInfo.phone}</Text>
+                  <TouchableOpacity
+                    style={styles.contactItem}
+                    onPress={callVendor}
+                  >
+                    <FontAwesome
+                      name="phone"
+                      size={16}
+                      color="#666"
+                      style={styles.contactIcon}
+                    />
+                    <Text style={styles.contactText}>
+                      {vendor.contactInfo.phone}
+                    </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {vendor.contactInfo.website && (
-                  <TouchableOpacity style={styles.contactItem} onPress={openWebsite}>
-                    <FontAwesome name="globe" size={16} color="#666" style={styles.contactIcon} />
-                    <Text style={styles.contactText}>{vendor.contactInfo.website}</Text>
+                  <TouchableOpacity
+                    style={styles.contactItem}
+                    onPress={openWebsite}
+                  >
+                    <FontAwesome
+                      name="globe"
+                      size={16}
+                      color="#666"
+                      style={styles.contactIcon}
+                    />
+                    <Text style={styles.contactText}>
+                      {vendor.contactInfo.website}
+                    </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {vendor.contactInfo.instagram && (
-                  <TouchableOpacity style={styles.contactItem} onPress={openInstagram}>
-                    <FontAwesome name="instagram" size={16} color="#666" style={styles.contactIcon} />
-                    <Text style={styles.contactText}>{vendor.contactInfo.instagram}</Text>
+                  <TouchableOpacity
+                    style={styles.contactItem}
+                    onPress={openInstagram}
+                  >
+                    <FontAwesome
+                      name="instagram"
+                      size={16}
+                      color="#666"
+                      style={styles.contactIcon}
+                    />
+                    <Text style={styles.contactText}>
+                      {vendor.contactInfo.instagram}
+                    </Text>
                   </TouchableOpacity>
                 )}
-                
               </View>
             </View>
-          )}
+          </ScrollView>
+        )}
 
-          {/* Reviews Tab */}
-          {activeTab === 'reviews' && (
-            <>
-              <View style={styles.reviewsSummary}>
-                {vendor.rating !== undefined && vendor.rating !== null ? (
-                  <>
-                    <Text style={styles.ratingLarge}>{vendor.rating.toFixed(1)}</Text>
-                    <View style={styles.ratingStarsLarge}>
-                      {[1, 2, 3, 4, 5].map(star => (
-                        <FontAwesome
-                          key={star}
-                          name="star"
-                          size={24}
-                          color={star <= vendor.rating! ? Colors.primary : '#ddd'}
-                          style={{ marginRight: 4 }}
-                        />
-                      ))}
-                    </View>
-                  </>
-                ) : (
-                  <Text style={styles.noReviewsTextLarge}>No Reviews Yet</Text>
-                )}
-                <Text style={styles.reviewCount}>
-                  Based on {vendor.reviews.length} {vendor.reviews.length === 1 ? 'review' : 'reviews'}
+        {/* Reviews Tab */}
+        {activeTab === "reviews" && (
+          <ScrollView>
+            <View style={styles.reviewsSummary}>
+              {vendor.rating !== undefined && vendor.rating !== null ? (
+                <>
+                  <Text style={styles.ratingLarge}>
+                    {vendor.rating.toFixed(1)}
+                  </Text>
+                  <View style={styles.ratingStarsLarge}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FontAwesome
+                        key={star}
+                        name="star"
+                        size={24}
+                        color={star <= vendor.rating! ? Colors.primary : "#ddd"}
+                        style={{ marginRight: 4 }}
+                      />
+                    ))}
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.noReviewsTextLarge}>No Reviews Yet</Text>
+              )}
+              <Text style={styles.reviewCount}>
+                Based on {vendor.reviews.length}{" "}
+                {vendor.reviews.length === 1 ? "review" : "reviews"}
+              </Text>
+            </View>
+
+            {/* Display all reviews */}
+            {vendor.reviews.map((review) => {
+              return renderReviewItem(review);
+            })}
+
+            {vendor.reviews.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text>No reviews yet. Be the first to review!</Text>
+              </View>
+            )}
+
+            {/* Add/edit review button */}
+            {currentUser ? (
+              userReviews.length > 0 ? (
+                <TouchableOpacity
+                  style={styles.writeReviewButton}
+                  onPress={() => handleEditReview(userReviews[0])}
+                >
+                  <Text style={styles.writeReviewText}>Edit Your Review</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.writeReviewButton}
+                  onPress={() => setShowReviewModal(true)}
+                >
+                  <Text style={styles.writeReviewText}>Write a Review</Text>
+                </TouchableOpacity>
+              )
+            ) : (
+              <TouchableOpacity
+                style={styles.writeReviewButton}
+                onPress={() =>
+                  Alert.alert(
+                    "Sign In Required",
+                    "Please sign in to leave a review"
+                  )
+                }
+              >
+                <Text style={styles.writeReviewText}>Log in to Review</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        )}
+
+        {/* Photos Tab */}
+        {activeTab === "photos" && (
+          <View style={styles.photosContainer}>
+            {vendor.photos && vendor.photos.length > 0 ? (
+              <FlatList
+                data={vendor.photos}
+                renderItem={renderPhotoItem}
+                keyExtractor={(item, index) => `${item}-${index}`}
+                numColumns={3}
+                contentContainerStyle={styles.photosGrid}
+              />
+            ) : (
+              <View style={styles.emptyState}>
+                <FontAwesome name="camera" size={50} color="#ccc" />
+                <Text style={styles.emptyStateText}>
+                  No photos available yet.
                 </Text>
               </View>
+            )}
 
-              
-              {/* Display all reviews */}
-              {vendor.reviews.map(review => { return renderReviewItem(review);})}
-              
-              {vendor.reviews.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Text>No reviews yet. Be the first to review!</Text>
-                </View>
-              )}
-              
-              {/* Add/edit review button */}
-              {currentUser ? (
-                userReviews.length > 0 ? (
-                  <TouchableOpacity 
-                    style={styles.writeReviewButton}
-                    onPress={() => handleEditReview(userReviews[0])}
-                  >
-                    <Text style={styles.writeReviewText}>Edit Your Review</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity 
-                    style={styles.writeReviewButton}
-                    onPress={() => setShowReviewModal(true)}
-                  >
-                    <Text style={styles.writeReviewText}>Write a Review</Text>
-                  </TouchableOpacity>
+            {/* Placeholder for Upload Button */}
+            <TouchableOpacity
+              style={[styles.uploadPhotoButton, styles.disabledButton]}
+              onPress={() =>
+                Alert.alert(
+                  "Coming Soon",
+                  "Adding photos will be available soon!"
                 )
-              ) : (
-                <TouchableOpacity 
-                  style={styles.writeReviewButton}
-                  onPress={() => Alert.alert('Sign In Required', 'Please sign in to leave a review')}
-                >
-                  <Text style={styles.writeReviewText}>Log in to Review</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        </ScrollView>
-      
-        <ReviewModal
-          visible={showReviewModal}
-          onClose={() => {
-            setShowReviewModal(false);
-            setEditingReview(null);
-          }}
-          onSubmit={handleReviewSubmit}
-          initialRating={editingReview ? editingReview.rating : 0}
-          initialComment={editingReview ? editingReview.comment : ''}
-          isEditing={!!editingReview}
-        />
+              }
+              disabled={true} // Disabled for now
+            >
+              <FontAwesome
+                name="camera"
+                size={18}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.uploadPhotoButtonText}>Add Photo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
+      <ReviewModal
+        visible={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setEditingReview(null);
+        }}
+        onSubmit={handleReviewSubmit}
+        initialRating={editingReview ? editingReview.rating : 0}
+        initialComment={editingReview ? editingReview.comment : ""}
+        isEditing={!!editingReview}
+      />
+
+      <Modal
+        visible={isImageViewVisible}
+        transparent={true}
+        animationType="fade" // Or "slide"
+        onRequestClose={() => setImageViewVisible(false)} // Allows closing with back button on Android
+      >
+        <View style={styles.imageModalBackground}>
+          {/* Close button */}
+          <TouchableOpacity
+            style={styles.imageModalCloseButton}
+            onPress={() => setImageViewVisible(false)}
+          >
+            <FontAwesome name="times" size={24} color="white" />
+          </TouchableOpacity>
+
+          {/* Image */}
+          {selectedImageUri && (
+            <Image
+              source={{ uri: selectedImageUri }}
+              style={styles.fullScreenImage}
+              resizeMode="contain" // Important to see the whole image
+            />
+          )}
+        </View>
+      </Modal>
+    </View>
   );
 }
 
@@ -907,11 +1077,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabContent: {
-    flex: 1,
-    padding: 15,
+    flex: 1, // Make sure this View takes up remaining space
+    // Remove padding if you want ScrollView/FlatList content to go edge-to-edge
+     padding: 15, // Keep or remove based on desired layout
+  },
+  infoScrollView: { // Add padding back to the ScrollView if needed
+     padding: 15,
   },
   infoContainer: {
-    paddingBottom: 20,
+    // paddingBottom: 20, // Padding might be handled by ScrollView now
   },
   infoSection: {
     marginBottom: 20,
@@ -1023,10 +1197,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 10,
   },
-  emptyState: {
-    padding: 20,
-    alignItems: 'center',
-  },
   writeReviewButton: {
     backgroundColor: Colors.primary,
     borderRadius: 25,
@@ -1087,5 +1257,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  
+  photosContainer: {
+    flex: 1, // Ensure it takes available space within tabContent
+  },
+  photosGrid: {
+     paddingBottom: 10, // Space below the grid
+     // paddingTop: 5, // Space above the grid - adjust as needed
+  },
+  photoItemContainer: {
+    flex: 1 / 3, // For 3 columns
+    aspectRatio: 1, // Make items square
+    padding: 2, // Small gap between photos
+  },
+  photoItem: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    borderRadius: 5,
+  },
+  uploadPhotoButton: {
+    flexDirection: 'row',
+    backgroundColor: Colors.primary,
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center', // Center content
+    marginTop: 20, // Space above button
+    marginBottom: 20, // Space below button
+    alignSelf: 'center', // Center button horizontally
+  },
+  uploadPhotoButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disabledButton: { 
+    backgroundColor: '#cccccc',
+  },
+  emptyStateText: { 
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+ emptyState: {
+    flex: 1, 
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center', 
+ },
+ // Styles for Image Viewer Modal
+ imageModalBackground: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.85)', 
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+imageModalCloseButton: {
+  position: 'absolute',
+  top: 50, 
+  right: 20,
+  padding: 10,
+  zIndex: 2, 
+},
+fullScreenImage: {
+  width: '100%',
+  height: '85%',
+},
 });

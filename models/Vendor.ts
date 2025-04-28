@@ -122,7 +122,21 @@ export interface Vendor {
     const openTime = openHours * 60 + openMinutes;
     const closeTime = closeHours * 60 + closeMinutes;
     
-    return currentTime >= openTime && currentTime <= closeTime;
+    //return currentTime >= openTime && currentTime <= closeTime;
+
+    let isOpen: boolean;
+
+    // Handle overnight case (close time is earlier than open time, e.g., 22:00 - 02:00)
+    if (closeTime < openTime) {
+      isOpen = currentTime >= openTime || currentTime <= closeTime;
+    } else {
+      // Handle normal case (e.g., 09:00 - 17:00)
+      isOpen = currentTime >= openTime && currentTime <= closeTime;
+    }
+
+    // console.log(`Is Open: ${isOpen}`); // Keep logging if needed
+    return isOpen;
+
   }
   
   // Helper function to get a formatted string of today's hours
