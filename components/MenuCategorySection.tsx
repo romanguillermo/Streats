@@ -77,10 +77,7 @@ const MenuCategorySection: React.FC<MenuCategorySectionProps> = ({
 
       {isExpanded && (
         <View style={styles.content}>
-          {/* Render category options (Protein choices...) if they exist */}
-          {renderCategoryOptions()}
-
-          {/* Render Menu Items */}
+          {/* Render Menu Items FIRST */}
           {categoryData.items.map(item => (
             <View key={item.id} style={styles.menuItem}>
               <View style={styles.menuItemInfo}>
@@ -90,6 +87,9 @@ const MenuCategorySection: React.FC<MenuCategorySectionProps> = ({
               {renderPrice(item)}
             </View>
           ))}
+
+          {/* Render category options (Protein choices...) AFTER items if they exist */}
+          {renderCategoryOptions()}
         </View>
       )}
     </View>
@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
     // Category Options
     categoryOptionsContainer: {
         paddingVertical: 10,
+        marginTop: 20,
         marginBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',

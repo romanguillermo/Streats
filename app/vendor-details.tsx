@@ -22,9 +22,12 @@ import Colors from '../constants/colors';
 import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour } from '../models/Vendor';
 import ReviewModal from '../components/ReviewModal';
 import { doc, getDoc, DocumentSnapshot, DocumentData,
-  collection, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs, query, orderBy, Timestamp, increment
+  collection, addDoc, updateDoc, deleteDoc, serverTimestamp, 
+  getDocs, query, orderBy, Timestamp, increment, arrayUnion,
  } from 'firebase/firestore';
 import MenuCategorySection from '../components/MenuCategorySection';
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
@@ -42,6 +45,7 @@ export default function VendorDetailsScreen() {
 
   const [isImageViewVisible, setImageViewVisible] = useState(false); 
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const currentUser = auth.currentUser;
   const CATEGORY_ORDER = ["Food", "Drinks", "Add Ons"];
@@ -519,7 +523,6 @@ export default function VendorDetailsScreen() {
       setSelectedImageUri(item); // Set the URI of the clicked image
       setImageViewVisible(true); // Show the modal
     };
-    // Basic image display - can be enhanced (e.g., lightbox)
     return (
       <TouchableOpacity style={styles.photoItemContainer} onPress={handlePhotoPress}>
         <Image source={{ uri: item }} style={styles.photoItem} resizeMode="cover" />
@@ -527,6 +530,135 @@ export default function VendorDetailsScreen() {
     );
   };
 
+  // Function to upload image and return URL
+  const uploadImageAsync = async (uri: string): Promise<string> => {
+    if (!vendor) throw new Error("Vendor data is not available.");
+
+    // Convert image URI to Blob
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.error(e);
+        reject(new TypeError("Network request failed"));
+      };
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
+    });
+
+    // Create a unique filename (e.g., using timestamp)
+    const filename = `${Date.now()}_${uri.substring(uri.lastIndexOf('/') + 1)}`;
+    // Create a storage reference (e.g., vendors/vendorId/images/filename.jpg)
+    const storage = getStorage();
+    const storageRef = ref(storage, `vendors/${vendor.id}/images/${filename}`);
+
+    // Upload the file
+    const uploadTask = uploadBytesResumable(storageRef, blob);
+
+    // Return a promise that resolves with the download URL
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // track progress
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log("Upload is " + progress + "% done");
+        },
+        (error) => {
+          // Handle unsuccessful uploads
+          console.error("Upload failed:", error);
+          reject(error);
+          (blob as any).close();
+        },
+        async () => {
+          // Handle successful uploads on complete
+          console.log("Upload successful");
+          (blob as any).close();
+          // Get the download URL
+          try {
+             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+             resolve(downloadURL);
+          } catch (getUrlError){
+             console.error("Failed to get download URL:", getUrlError);
+             reject(getUrlError);
+          }
+        }
+      );
+    });
+  };
+
+  // Function to update Firestore document
+  const updateVendorPhotos = async (imageUrl: string) => {
+     if (!vendor) return;
+     const vendorDocRef = doc(db, 'vendors', vendor.id);
+     try {
+         await updateDoc(vendorDocRef, {
+             photos: arrayUnion(imageUrl) // Add the new URL to the array
+         });
+         console.log('Firestore updated successfully with new photo URL.');
+         // Optimistically update local state to refresh UI immediately
+         setVendor(prevVendor => {
+             if (!prevVendor) return null;
+             return {
+                 ...prevVendor,
+                 photos: [...prevVendor.photos, imageUrl] // Add URL to local photos array
+             };
+         });
+         Alert.alert('Success', 'Photo added!');
+     } catch (error) {
+         console.error("Error updating vendor photos in Firestore:", error);
+         Alert.alert('Error', 'Could not save the photo reference.');
+         throw error;
+     }
+  };
+
+  // Function to handle the "Add Photo" button press
+  const handleAddPhotoPress = async () => {
+    if (isUploading) return; // Prevent multiple uploads
+
+    // 1. Request Permissions
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission Required", "You need to allow access to your photos to upload images.");
+      return;
+    }
+
+    // 2. Launch Image Picker
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true, // Optional: Allow basic editing
+      aspect: [4, 3], // Optional: Enforce aspect ratio
+      quality: 0.7, // Reduce quality slightly to save storage/bandwidth (0 to 1)
+    });
+
+    // 3. Handle Result
+    if (pickerResult.canceled) {
+      console.log("Image selection cancelled");
+      return;
+    }
+
+    if (pickerResult.assets && pickerResult.assets.length > 0) {
+      const selectedImageUri = pickerResult.assets[0].uri;
+
+      // 4. Upload & Update
+      setIsUploading(true);
+      try {
+        console.log("Starting upload for:", selectedImageUri);
+        const downloadURL = await uploadImageAsync(selectedImageUri);
+        console.log("Got download URL:", downloadURL);
+        await updateVendorPhotos(downloadURL);
+      } catch (error) {
+        console.error("Error adding photo:", error);
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+       console.log("No image assets found in picker result.");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -899,25 +1031,34 @@ export default function VendorDetailsScreen() {
               </View>
             )}
 
-            {/* Placeholder for Upload Button */}
+            {/* Upload Button */}
             <TouchableOpacity
-              style={[styles.uploadPhotoButton, styles.disabledButton]}
-              onPress={() =>
-                Alert.alert(
-                  "Coming Soon",
-                  "Adding photos will be available soon!"
-                )
-              }
-              disabled={true} // Disabled for now
+              style={[
+                styles.uploadPhotoButton,
+                isUploading && styles.disabledButton,
+              ]} // Apply disabled style when uploading
+              onPress={handleAddPhotoPress}
+              disabled={isUploading} // Disable button during upload
             >
-              <FontAwesome
-                name="camera"
-                size={18}
-                color="white"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.uploadPhotoButtonText}>Add Photo</Text>
+              {isUploading ? (
+                <ActivityIndicator
+                  color="white"
+                  size="small"
+                  style={{ marginRight: 8 }}
+                />
+              ) : (
+                <FontAwesome
+                  name="camera"
+                  size={18}
+                  color="white"
+                  style={{ marginRight: 8 }}
+                />
+              )}
+              <Text style={styles.uploadPhotoButtonText}>
+                {isUploading ? "Uploading..." : "Add Photo"}
+              </Text>
             </TouchableOpacity>
+
           </View>
         )}
       </View>
@@ -937,8 +1078,8 @@ export default function VendorDetailsScreen() {
       <Modal
         visible={isImageViewVisible}
         transparent={true}
-        animationType="fade" // Or "slide"
-        onRequestClose={() => setImageViewVisible(false)} // Allows closing with back button on Android
+        animationType="fade"
+        onRequestClose={() => setImageViewVisible(false)}
       >
         <View style={styles.imageModalBackground}>
           {/* Close button */}
@@ -954,7 +1095,7 @@ export default function VendorDetailsScreen() {
             <Image
               source={{ uri: selectedImageUri }}
               style={styles.fullScreenImage}
-              resizeMode="contain" // Important to see the whole image
+              resizeMode="contain"
             />
           )}
         </View>
