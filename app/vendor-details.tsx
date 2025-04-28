@@ -354,7 +354,7 @@ export default function VendorDetailsScreen() {
     }
     console.log("Editing review:", reviewToEdit); // Log the review being edited
     setEditingReview(reviewToEdit); // Store the review object (including its Firestore ID 'id')
-    setShowReviewModal(true); // Open the modal
+    setShowReviewModal(true); // Open the moda
   };
   
   // Delete a review

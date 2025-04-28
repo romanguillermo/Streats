@@ -8,7 +8,6 @@ import { FontAwesome } from '@expo/vector-icons';
 import { navigate } from 'expo-router/build/global-state/routing';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-
 export default function ProfileScreen() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);

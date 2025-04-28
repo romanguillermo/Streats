@@ -13,4 +13,4 @@ Streats is a mobile app designed to help users discover and locate street food v
 ## Tech Stack  
 - **Frontend:** React Native w/ Expo
 - **Backend:** Firebase  
-- **Database:**   
+- **Database:** Firestore
