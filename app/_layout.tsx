@@ -43,19 +43,19 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <FavoritesProvider>
-      <StatusBar style="dark" translucent={true} />
-        <Stack 
+        <StatusBar style="dark" translucent={true} />
+        <Stack
           screenOptions={{
             headerShown: false,
             headerStyle: {
-              backgroundColor: '#FFFFFF',
+              backgroundColor: "#FFFFFF",
             },
             headerTintColor: Colors.primary,
             headerTitleStyle: {
-              fontWeight: 'bold',
+              fontWeight: "bold",
             },
             contentStyle: {
-              backgroundColor: '#FFFFFF',
+              backgroundColor: "#FFFFFF",
             },
           }}
         >
@@ -63,21 +63,25 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="auth" />
           <Stack.Screen name="location-permission" />
-          <Stack.Screen 
-            name="vendor-details" 
-            options={{ 
-              headerShown: true, 
+          <Stack.Screen
+            name="vendor-details"
+            options={{
+              headerShown: true,
               title: "Vendor Details",
-            }} 
+            }}
           />
-          <Stack.Screen 
-            name="settings" 
-            options={{ 
-              headerShown: true, 
-              title: "Settings" 
-            }} 
+          <Stack.Screen
+            name="settings"
+            options={{
+              headerShown: true,
+              title: "Settings",
+            }}
           />
           <Stack.Screen name="tabs" />
+          <Stack.Screen name="my-reviews" options={{ 
+            headerShown: true,
+            title: "My Reviews",
+           }} />
           <Stack.Screen name="+not-found" />
         </Stack>
       </FavoritesProvider>

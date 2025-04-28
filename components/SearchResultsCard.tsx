@@ -25,6 +25,7 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({ vendor, onPress }) 
               {" "}
               {vendor.rating.toFixed(1)}
             </Text>
+            <Text style={styles.reviewCountText}> ({vendor.reviewCount || 0})</Text>
           </>
         ) : (
           <Text style={styles.noReviewsTextSmall}>No reviews</Text>
@@ -60,6 +61,11 @@ const styles = StyleSheet.create({
   searchResultRating: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  reviewCountText: { 
+    fontSize: 11,
+    color: '#888',
+    marginLeft: 2,
   },
   searchResultRatingText: {
     fontSize: 12,

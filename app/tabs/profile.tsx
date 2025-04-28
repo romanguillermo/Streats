@@ -36,6 +36,10 @@ export default function ProfileScreen() {
     router.push('/tabs/vendors');
   };
 
+  const navigateToMyReviews = () => {
+    router.push('/my-reviews'); 
+};
+
   const navigateToSettings = () => {
     router.push('/settings');
   };
@@ -64,7 +68,7 @@ export default function ProfileScreen() {
           <FontAwesome name="chevron-right" size={16} color="#888" />
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={navigateToMyReviews}>
           <FontAwesome name="star" size={24} color={Colors.primary} />
           <Text style={styles.menuItemText}>My Reviews</Text>
           <FontAwesome name="chevron-right" size={16} color="#888" />

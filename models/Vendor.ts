@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface Vendor {
     id: string;
     name: string;
@@ -11,6 +13,7 @@ export interface Vendor {
     photos: string[];
     rating?: number | null;
     reviews: Review[];
+    reviewCount?: number;
     operatingHours: OperatingHours;
     contactInfo: ContactInfo;
     isOpen?: boolean;
@@ -63,7 +66,7 @@ export interface Vendor {
     userName: string;
     rating: number;
     comment: string;
-    date: string;
+    date: Timestamp | string;
   }
   
   export interface OperatingHours {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   StyleSheet,
   View,
@@ -14,7 +14,7 @@ import {
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFavorites } from '../../context/FavoritesContext';
 import Colors from '../../constants/colors';
@@ -55,49 +55,53 @@ export default function MapScreen() {
   const allCuisineTypes = [...new Set(vendors.map(vendor => vendor.cuisineType))];
 
   // Fetch vendors from Firestore
-  useEffect(() => {
-    const fetchVendors = async () => {
-      setLoading(true);
-      setError(null);
+  const fetchVendors = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
+    try {
         const vendorsCollectionRef = collection(db, 'vendors');
         const q = query(vendorsCollectionRef);
-        const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
+        const querySnapshot = await getDocs(q);
 
         const fetchedVendors: Vendor[] = [];
         querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          fetchedVendors.push({
-            id: doc.id,
-            name: data.name || 'Unnamed Vendor',
-            description: data.description || '',
-            cuisineType: data.cuisineType || 'Unknown',
-            location: {
-              latitude: data.location?.latitude || 0,
-              longitude: data.location?.longitude || 0,
-            },
-            menu: data.menu || [],
-            photos: data.photos || [],
-            rating: data.rating || 0,
-            reviews: data.reviews || [],
-            operatingHours: data.operatingHours || {},
-            contactInfo: data.contactInfo || {},
-          });
+             const data = doc.data();
+             fetchedVendors.push({
+                id: doc.id,
+                name: data.name || 'Unnamed Vendor',
+                description: data.description || '',
+                cuisineType: data.cuisineType || 'Unknown',
+                location: {
+                  latitude: data.location?.latitude || 0,
+                  longitude: data.location?.longitude || 0,
+                },
+                menu: data.menu || {},
+                photos: data.photos || [],
+                rating: data.rating !== undefined ? data.rating : null,
+                reviews: data.reviews || [],
+                reviewCount: data.reviewCount || 0,
+                operatingHours: data.operatingHours || {},
+                contactInfo: data.contactInfo || {},
+             });
         });
-
         setVendors(fetchedVendors);
-        setFilteredVendors(fetchedVendors);
-      } catch (err: any) {
-        console.error("Error fetching vendors:", err);
-        setError("Failed to fetch vendors. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (err: any) {
+        console.error("Error fetching vendors for map:", err);
+        setError("Failed to load vendor data."); 
+    } finally {
 
-    fetchVendors();
-  }, []);
+         setLoading(false); 
+    }
+}, []);
+
+ // Use useFocusEffect to fetch data when the screen comes into focus
+useFocusEffect(
+    useCallback(() => {
+        console.log('Map screen focused, fetching vendors...');
+        fetchVendors();
+    }, [fetchVendors])
+);
 
   useEffect(() => {
     const getLocation = async () => {
@@ -369,6 +373,7 @@ export default function MapScreen() {
                         {" "}
                         {vendor.rating!.toFixed(1)}
                       </Text>
+                      <Text style={styles.calloutReviewCountText}> ({vendor.reviewCount || 0})</Text>
                     </>
                   ) : (
                     <Text style={styles.calloutNoReviewsText}>No reviews</Text>
@@ -549,7 +554,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     position: 'absolute',
-    top: 65,
+    top: 70,
     left: 16,
     right: 16,
     zIndex: 1,
@@ -660,6 +665,11 @@ const styles = StyleSheet.create({
   calloutRatingText: {
     fontSize: 12,
     color: '#333',
+  },
+  calloutReviewCountText: { 
+    fontSize: 11,
+    color: '#888',
+    marginLeft: 2,
   },
   searchResultsContainer: {
     position: 'absolute',

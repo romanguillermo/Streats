@@ -52,7 +52,7 @@ const VendorListItem: React.FC<VendorListItemProps> = ({
         <Text style={styles.cuisineType}>{vendor.cuisineType}</Text>
             
         <View style={styles.ratingContainer}>
-            { vendor.rating !== undefined && vendor.rating !== null ? ( // Check if rating exists
+            { vendor.rating !== undefined && vendor.rating !== null && vendor.rating > 0 ? ( 
                 <>
                     {[1, 2, 3, 4, 5].map(star => (
                     <FontAwesome
@@ -64,6 +64,7 @@ const VendorListItem: React.FC<VendorListItemProps> = ({
                     />
                     ))}
                     <Text style={styles.ratingText}>{vendor.rating.toFixed(1)}</Text>
+                    <Text style={styles.reviewCountText}> ({vendor.reviewCount || 0})</Text>
                 </>
             ) : (
                 <Text style={styles.ratingText}>No reviews yet</Text> 
@@ -145,6 +146,11 @@ const styles = StyleSheet.create({
         marginLeft: 4,
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    reviewCountText: { 
+        fontSize: 12,
+        color: '#666',
+        marginLeft: 2,
     },
     statusLabel: {
         fontSize: 12,

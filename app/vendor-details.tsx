@@ -13,15 +13,16 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { auth } from '../config/firebaseConfig';
+import { auth, db } from '../config/firebaseConfig';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import Colors from '../constants/colors';
 import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour } from '../models/Vendor';
 import ReviewModal from '../components/ReviewModal';
-import { db } from '../config/firebaseConfig';
-import { doc, getDoc, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { doc, getDoc, DocumentSnapshot, DocumentData,
+  collection, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs, query, orderBy, Timestamp, increment
+ } from 'firebase/firestore';
 import MenuCategorySection from '../components/MenuCategorySection';
 
 export default function VendorDetailsScreen() {
@@ -42,7 +43,7 @@ export default function VendorDetailsScreen() {
   const CATEGORY_ORDER = ["Food", "Drinks", "Add Ons"];
 
   useEffect(() => {
-    const fetchVendorDetails = async () => {
+    const fetchVendorAndReviews = async () => {
       if (!id || typeof id !== 'string') {
         setError("Invalid Vendor ID.");
         setIsLoading(false);
@@ -51,13 +52,17 @@ export default function VendorDetailsScreen() {
   
       setIsLoading(true);
       setError(null);
+      setVendor(null); 
+      setUserReviews([]);
   
       try {
         const vendorDocRef = doc(db, 'vendors', id); 
-        const docSnap: DocumentSnapshot<DocumentData> = await getDoc(vendorDocRef);
+        const docSnap = await getDoc(vendorDocRef);
+        let fetchedVendorData: Vendor | null = null;
+
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setVendor({
+          fetchedVendorData = { 
             id: docSnap.id,
             name: data.name || 'Unnamed Vendor',
             description: data.description || '',
@@ -66,17 +71,52 @@ export default function VendorDetailsScreen() {
               latitude: data.location?.latitude || 0,
               longitude: data.location?.longitude || 0,
             },
-            menu: data.menu || [],
+            menu: data.menu || {}, 
             photos: data.photos || [],
-            rating: data.rating !== undefined ? data.rating : 0,
-            reviews: data.reviews || [],
+            rating: data.rating !== undefined ? data.rating : null,
+            reviews: [],
             operatingHours: data.operatingHours || {},
             contactInfo: data.contactInfo || {},
-          });
+          };
         } else {
           console.log("No such vendor document!");
           setError("Vendor not found.");
-          setVendor(null);
+          setIsLoading(false);
+          return; 
+        }
+        // --- Fetch Reviews Subcollection ---
+        const reviewsCollectionRef = collection(db, 'vendors', id, 'reviews');
+        const reviewsQuery = query(reviewsCollectionRef, orderBy('date', 'desc'));
+        const reviewsSnapshot = await getDocs(reviewsQuery);
+
+        const fetchedReviews: Review[] = [];
+        reviewsSnapshot.forEach((reviewDoc) => {
+          const reviewData = reviewDoc.data();
+          const reviewDate = reviewData.date instanceof Timestamp
+            ? reviewData.date.toDate().toISOString()
+            : new Date().toISOString(); 
+
+          fetchedReviews.push({
+            id: reviewDoc.id,
+            userId: reviewData.userId || '',
+            userName: reviewData.userName || 'Anonymous',
+            rating: reviewData.rating || 0,
+            comment: reviewData.comment || '',
+            date: reviewDate,
+          });
+        });
+
+        // --- Update State ---
+        // Add fetched reviews to the vendor data
+        if (fetchedVendorData) {
+            fetchedVendorData.reviews = fetchedReviews;
+            setVendor(fetchedVendorData);
+            if (currentUser) {
+                 const userReviewList = fetchedReviews.filter(
+                    review => review.userId === currentUser.uid
+                 );
+                 setUserReviews(userReviewList);
+            }
         }
       } catch (err: any) {
         console.error("Error fetching vendor details:", err);
@@ -86,8 +126,8 @@ export default function VendorDetailsScreen() {
       }
     };
   
-    fetchVendorDetails();
-  }, [id]);
+    fetchVendorAndReviews();
+  }, [id, currentUser]);
 
   useEffect(() => {
     // After loading the vendor, find user reviews
@@ -171,112 +211,224 @@ export default function VendorDetailsScreen() {
   }
   
   // Submit review
-  const handleReviewSubmit = (rating: number, comment: string) => {
+  const handleReviewSubmit = async (rating: number, comment: string) => {
     if (!vendor || !currentUser) {
-      Alert.alert('Error', 'You must be logged in to leave a review');
+      Alert.alert('Error', 'You must be logged in');
       return;
     }
-    
-    // Check if user is editing an existing review
-    if (editingReview) {
-      // Find the review in the vendor's reviews
-      const updatedReviews = vendor.reviews.map(review => 
-        review.id === editingReview.id 
-          ? {
-              ...review,
-              rating,
-              comment,
-              date: new Date().toISOString()
-            }
-          : review
-      );
-      
-      // Update vendor with new reviews
-      setVendor({
-        ...vendor,
-        reviews: updatedReviews,
-        // Recalculate the average rating
-        rating: calculateAverageRating(updatedReviews)
-      });
-      
-      setEditingReview(null);
+
+    // --- Logic for editing an existing review ---
+    if (editingReview && editingReview.id) {
+      console.log("Submitting EDIT for review ID:", editingReview.id);
+      const reviewDocRef = doc(db, 'vendors', vendor.id, 'reviews', editingReview.id); 
+
+      try {
+        // --- Update the document in Firestore ---
+        await updateDoc(reviewDocRef, {
+          rating: rating,
+          comment: comment,
+          date: serverTimestamp(), 
+        });
+        console.log("Review updated successfully in Firestore.");
+
+        // --- Client-side state update ---
+        // 1. Find the index of the review being edited in the local state
+        const reviewIndex = vendor.reviews.findIndex(r => r.id === editingReview.id);
+
+        if (reviewIndex !== -1) {
+           // 2. Create the updated review object for local state
+           const updatedReviewForState: Review = {
+                ...editingReview, 
+                rating,
+                comment,
+                date: new Date().toISOString(), 
+           };
+           // 3. Create a new array with the updated review
+           const updatedReviews = [...vendor.reviews];
+           updatedReviews[reviewIndex] = updatedReviewForState;
+
+           // 4. Recalculate average rating
+           const newAverageRating = calculateAverageRating(updatedReviews);
+
+           // 5. Update local vendor state
+           setVendor(prevVendor => prevVendor ? ({
+             ...prevVendor,
+             reviews: updatedReviews,
+             rating: newAverageRating
+           }) : null);
+
+           // 6. Update the vendor document's rating in Firestore
+           const vendorDocRef = doc(db, 'vendors', vendor.id);
+           await updateDoc(vendorDocRef, {
+             rating: newAverageRating
+           });
+
+           Alert.alert('Success', 'Your review has been updated!');
+        } else {
+           console.error("Edited review not found in local state, might be out of sync.");
+        }
+
+      } catch (error) {
+        console.error("Error updating review:", error);
+        Alert.alert('Error', 'Could not update your review.');
+      } finally {
+        setEditingReview(null); 
+        setShowReviewModal(false); 
+      }
+
     } else {
-      // Create new review
-      const newReview: Review = {
-        id: Date.now().toString(), // Simple ID generation
+      // --- Logic for creating new review ---
+      console.log("Submitting NEW review");
+      const newReviewData = {
         userId: currentUser.uid,
         userName: currentUser.displayName || 'Anonymous',
-        rating,
-        comment,
-        date: new Date().toISOString()
+        rating: rating,
+        comment: comment,
+        date: serverTimestamp(),
+        vendorId: vendor.id,
+        vendorName: vendor.name
       };
-      
-      const updatedReviews = [...vendor.reviews, newReview];
-      
-      // Update vendor with new review
-      setVendor({
-        ...vendor,
-        reviews: updatedReviews,
-        // Recalculate average rating
-        rating: calculateAverageRating(updatedReviews)
-      });
-      
-      // Update user reviews
-      setUserReviews([...userReviews, newReview]);
+      const reviewsCollectionRef = collection(db, 'vendors', vendor.id, 'reviews');
+
+      try {
+         const addedReviewRef = await addDoc(reviewsCollectionRef, newReviewData);
+         console.log("Review added with ID: ", addedReviewRef.id);
+
+         // Client-side update
+         const addedReviewForState: Review = {
+             userId: newReviewData.userId,
+             userName: newReviewData.userName,
+             rating: newReviewData.rating,
+             comment: newReviewData.comment,
+             id: addedReviewRef.id,
+             date: new Date().toISOString(),
+         };
+
+         const updatedReviews = [...vendor.reviews, addedReviewForState];
+         const newAverageRating = calculateAverageRating(updatedReviews);
+
+         setVendor(prevVendor => prevVendor ? ({
+           ...prevVendor,
+           reviews: updatedReviews,
+           rating: newAverageRating
+         }) : null);
+
+          if (userReviews.filter(r => r.userId === currentUser.uid).length === 0) {
+            setUserReviews([addedReviewForState]);
+         }
+
+
+         const vendorDocRef = doc(db, 'vendors', vendor.id);
+         await updateDoc(vendorDocRef, {
+           rating: newAverageRating,
+            reviewCount: increment(1)
+         });
+
+         Alert.alert('Success', 'Your review has been submitted!');
+
+      } catch (error) {
+        console.error("Error submitting review: ", error);
+        Alert.alert('Error', 'Could not submit your review.');
+      } finally {
+         setShowReviewModal(false);
+      }
     }
-    
-    setShowReviewModal(false);
-    
-    // Need to send to backend
-    Alert.alert('Success', 'Your review has been submitted!');
   };
   
   // Calculate average rating
-  const calculateAverageRating = (reviews: Review[]): number => {
-    if (reviews.length === 0) return 0;
+  const calculateAverageRating = (reviews: Review[]): number | null => {
+    if (reviews.length === 0) return null;
     
     const sum = reviews.reduce((total, review) => total + review.rating, 0);
-    return Number((sum / reviews.length).toFixed(1));
+    const avg = sum / reviews.length;
+    return Number(avg.toFixed(1));
   };
   
   // Edit a review
-  const handleEditReview = (review: Review) => {
-    setEditingReview(review);
-    setShowReviewModal(true);
+  const handleEditReview = (reviewToEdit: Review) => {
+    // Ensure we have the necessary data to pre-fill the modal
+    if (!reviewToEdit || !reviewToEdit.id) {
+        console.error("Cannot edit review: Invalid review object passed.");
+        Alert.alert("Error", "Could not start editing the review.");
+        return;
+    }
+    console.log("Editing review:", reviewToEdit); // Log the review being edited
+    setEditingReview(reviewToEdit); // Store the review object (including its Firestore ID 'id')
+    setShowReviewModal(true); // Open the modal
   };
   
   // Delete a review
-  const handleDeleteReview = (reviewId: string) => {
+  const handleDeleteReview = async (reviewIdToDelete: string) => {
+    if (!vendor || !reviewIdToDelete) {
+      console.error("Cannot delete review: Missing vendor or review ID.");
+      return;
+    }
+
+    console.log("Attempting to delete review ID:", reviewIdToDelete);
+    const reviewDocRef = doc(db, 'vendors', vendor.id, 'reviews', reviewIdToDelete);
+
+    // Double-check with user
     Alert.alert(
       'Delete Review',
-      'Are you sure you want to delete this review?',
+      'Are you sure you want to permanently delete this review?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            if (!vendor) return;
-            
-            const updatedReviews = vendor.reviews.filter(
-              review => review.id !== reviewId
-            );
-            
-            setVendor({
-              ...vendor,
+        { text: 'Delete', style: 'destructive', onPress: async () => { 
+          // --- Deletion Logic Starts Here ---
+          try {
+            // --- Delete document from Firestore ---
+            await deleteDoc(reviewDocRef);
+            console.log("Review deleted successfully from Firestore.");
+
+            // --- Client-side state update ---
+            // 1. Filter out the deleted review from local state
+            const updatedReviews = vendor.reviews.filter(r => r.id !== reviewIdToDelete);
+
+            // 2. Recalculate average rating
+            const newAverageRating = calculateAverageRating(updatedReviews);
+
+            // 3. Update local vendor state
+            setVendor(prevVendor => prevVendor ? ({
+              ...prevVendor,
               reviews: updatedReviews,
-              rating: calculateAverageRating(updatedReviews)
+              rating: newAverageRating
+            }) : null);
+
+             // 4. Update user-specific reviews state
+            setUserReviews(prevUserReviews => prevUserReviews.filter(r => r.id !== reviewIdToDelete));
+
+            // 5. Update the vendor document's rating in Firestore
+            const vendorDocRef = doc(db, 'vendors', vendor.id);
+            await updateDoc(vendorDocRef, {
+              rating: newAverageRating,
+              reviewCount: increment(-1)
             });
-            
-            setUserReviews(userReviews.filter(review => review.id !== reviewId));
+
+            Alert.alert('Success', 'Your review has been deleted.');
+
+          } catch (error) {
+            console.error("Error deleting review:", error);
+            Alert.alert('Error', 'Could not delete your review.');
           }
-        }
+        }}, 
       ]
     );
   };
   
   const renderReviewItem = (review: Review) => {
     const isUserReview = currentUser && review.userId === currentUser.uid;
+
+    // Convert date for display, handling both Timestamp and string
+    let displayDate: Date | null = null;
+    try {
+      if (review.date instanceof Timestamp) {
+        displayDate = review.date.toDate();
+      } else if (typeof review.date === 'string') {
+        displayDate = new Date(review.date);
+      }
+    } catch (e) {
+      console.error("Error parsing review date:", e);
+    }
     
     return (
       <View key={review.id} style={styles.reviewItem}>
@@ -301,7 +453,7 @@ export default function VendorDetailsScreen() {
           </View>
         </View>
         <Text style={styles.reviewDate}>
-          {new Date(review.date).toLocaleDateString()}
+          {displayDate ? displayDate.toLocaleDateString() : 'Date unavailable'}
         </Text>
         <Text style={styles.reviewComment}>{review.comment}</Text>
         
@@ -410,6 +562,7 @@ export default function VendorDetailsScreen() {
                     />
                   ))}
                   <Text style={styles.ratingText}> {vendor.rating.toFixed(1)}</Text>
+                  <Text style={styles.reviewCountText}> ({vendor.reviews.length})</Text>
                 </>
               ) : (
                 <Text style={styles.noReviewsText}>No reviews yet</Text> 
@@ -696,6 +849,11 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  reviewCountText: {
+    fontSize: 14,
+    color: '#666',
     marginLeft: 4,
   },
   statusContainer: {

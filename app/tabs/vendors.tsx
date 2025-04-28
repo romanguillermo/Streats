@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList,
   TextInput, TouchableOpacity, ScrollView, ActivityIndicator
  } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import Colors from '../../constants/colors';
 import { Vendor, isVendorOpen } from '../../models/Vendor';
 import { useFavorites } from '../../context/FavoritesContext';
@@ -25,50 +25,53 @@ export default function VendorsScreen() {
   const [ error, setError ] = useState<string | null>(null);
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchVendors = async () => {
-      setIsLoading(true); // Start loading
-      setError(null); // Clear previous errors
-  
-      try {
-        const vendorsCollectionRef = collection(db, 'vendors'); // Reference 'vendors' collection
-        const q = query(vendorsCollectionRef); // Basic query (add sorting/filtering later)
-        const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q); // Fetch documents
-  
-        const fetchedVendors: Vendor[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          // Map Firestore data Vendor interface
-          fetchedVendors.push({
-            id: doc.id, 
-            name: data.name || 'Unnamed Vendor',
-            description: data.description || '',
-            cuisineType: data.cuisineType || 'Unknown',
-            location: {
-              latitude: data.location?.latitude || 0,
-              longitude: data.location?.longitude || 0,
-            },
-            menu: data.menu || [],
-            photos: data.photos || [],
-            rating: data.rating !== undefined ? data.rating : null,
-            reviews: data.reviews || [],
-            operatingHours: data.operatingHours || {},
-            contactInfo: data.contactInfo || {},
-          });
+  const fetchVendors = useCallback(async () => {
+    setError(null); 
+
+    try {
+      const vendorsCollectionRef = collection(db, "vendors");
+      const q = query(vendorsCollectionRef);
+      const querySnapshot = await getDocs(q);
+
+      const fetchedVendors: Vendor[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        fetchedVendors.push({
+          id: doc.id,
+          name: data.name || "Unnamed Vendor",
+          description: data.description || "",
+          cuisineType: data.cuisineType || "Unknown",
+          location: {
+            latitude: data.location?.latitude || 0,
+            longitude: data.location?.longitude || 0,
+          },
+          menu: data.menu || {},
+          photos: data.photos || [],
+          rating: data.rating !== undefined ? data.rating : null,
+          reviews: data.reviews || [], 
+          reviewCount: data.reviewCount || 0,
+          operatingHours: data.operatingHours || {},
+          contactInfo: data.contactInfo || {},
         });
-  
-        setVendors(fetchedVendors); // Update main vendors state
-  
-      } catch (err: any) {
-        console.error("Error fetching vendors:", err);
-        setError("Failed to fetch vendors. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    fetchVendors();
-  }, []);
+      });
+
+      setVendors(fetchedVendors); // Update main vendors state
+    } catch (err: any) {
+      console.error("Error fetching vendors:", err);
+      setError("Failed to fetch vendors. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []); 
+
+  // Use useFocusEffect to fetch data when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Vendors screen focused, fetching vendors...");
+      setIsLoading(true); 
+      fetchVendors();
+    }, [fetchVendors]) 
+  );
 
   useEffect(() => {
     let result = [...vendors];

@@ -64,6 +64,7 @@ const MapVendorCard: React.FC<MapVendorCardProps> = ({
             <Text style={styles.vendorRating}>
               {vendor.rating.toFixed(1)}
             </Text>
+            <Text style={styles.reviewCountText}> ({vendor.reviewCount || 0})</Text>
           </>
         ) : (
           <Text style={styles.noReviewsText}>No reviews yet</Text>
@@ -147,6 +148,11 @@ const styles = StyleSheet.create({
   },
   vendorRating: {
     fontWeight: "bold",
+  },
+  reviewCountText: { 
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 4,
   },
   vendorDescription: {
     color: "#333",
