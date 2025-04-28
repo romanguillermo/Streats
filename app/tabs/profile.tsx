@@ -31,8 +31,7 @@ export default function ProfileScreen() {
   };
 
   const navigateToFavorites = () => {
-    // placeholder
-    router.push('/tabs/vendors');
+    router.push('/favorites');
   };
 
   const navigateToMyReviews = () => {
@@ -61,9 +60,9 @@ export default function ProfileScreen() {
       </View>
       
       <View style={styles.menuSection}>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={navigateToFavorites}>
           <FontAwesome name="heart" size={24} color={Colors.primary} />
-          <Text style={styles.menuItemText}>Favorite Vendors</Text>
+          <Text style={styles.menuItemText}>My Favorite Vendors</Text>
           <FontAwesome name="chevron-right" size={16} color="#888" />
         </TouchableOpacity>
         
@@ -184,7 +183,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   menuSection: {
-    marginTop: 24,
   },
   menuItem: {
     flexDirection: 'row',
@@ -200,7 +198,8 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   signOutButton: {
-    marginTop: 32,
+    marginTop: 'auto',
+    marginBottom: 16,
     backgroundColor: Colors.primary,
     paddingVertical: 15,
     borderRadius: 25,

@@ -14,9 +14,10 @@ import { Link, router } from 'expo-router';
 import { signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  onAuthStateChanged,
+  onAuthStateChanged, 
  } from 'firebase/auth';
-import { auth } from '../../config/firebaseConfig';
+import { auth, db } from '../../config/firebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
 import Colors from '../../constants/colors';
 import * as Location from 'expo-location';
 import { FontAwesome } from '@expo/vector-icons';
@@ -54,6 +55,22 @@ export default function AuthScreen() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
           await updateProfile(userCredential.user, { displayName: name });
+          
+          // Create user document in Firestore
+        const userId = userCredential.user.uid;
+        const userDocRef = doc(db, 'users', userId);
+        try {
+          await setDoc(userDocRef, {
+            uid: userId,
+            email: userCredential.user.email, 
+            displayName: name, 
+            favoriteVendorIds: [] 
+          }, { merge: true });
+          console.log("User document created in Firestore for:", userId);
+        } catch (firestoreError) {
+          console.error("Error creating user document in Firestore:", firestoreError);
+        }
+
         }
         router.replace('/location-permission');
       }

@@ -82,6 +82,13 @@ export default function RootLayout() {
             headerShown: true,
             title: "My Reviews",
            }} />
+           <Stack.Screen
+            name="favorites" 
+            options={{
+              headerShown: true, 
+              title: "Favorite Vendors",
+            }}
+          />
           <Stack.Screen name="+not-found" />
         </Stack>
       </FavoritesProvider>

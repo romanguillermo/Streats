@@ -1,10 +1,10 @@
 # Streats 
-*A street food finder app for LA*  
+*LA Street Food Finder App*  
 
-## Overview  
-Streats is a mobile app designed to help users discover and locate street food vendors in Los Angeles. The goal is to provide an easy way for food lovers to explore and support local street food businesses.  
+## Overview 
+Streats is a mobile app designed to make finding LA's best street food (food trucks, stands, carts, ice cream trucks and more) easy. The goal is to provide an easy way for users to explore LA's vast food culture and support local businesses.  
 
-## Features (Planned)  
+## Features 
 - 📍 **Real-time vendor locations**  
 - 🔍 **Search & filter by cuisine** 
 - 📃 **View up-to-date menus and hours**
