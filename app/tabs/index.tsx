@@ -23,6 +23,7 @@ import MapVendorCard from '../../components/MapVendorCard';
 import SearchResultsCard from '../../components/SearchResultsCard';
 import { db } from '../../config/firebaseConfig';
 import { collection, getDocs, query, QuerySnapshot, DocumentData } from 'firebase/firestore';
+import CustomMapMarkerIcon from '../../components/CustomMapMarkerIcon'; 
 
 interface FilterOptions {
   onlyOpen: boolean;
@@ -72,6 +73,7 @@ export default function MapScreen() {
                 name: data.name || 'Unnamed Vendor',
                 description: data.description || '',
                 cuisineType: data.cuisineType || 'Unknown',
+                category: data.category,
                 location: {
                   latitude: data.location?.latitude || 0,
                   longitude: data.location?.longitude || 0,
@@ -358,9 +360,9 @@ useFocusEffect(
             description={vendor.cuisineType}
             onPress={() => setSelectedVendor(vendor)}
           >
-            <View style={styles.customMarker}>
-              <FontAwesome name="cutlery" size={16} color="white" />
-            </View>
+            {/* Vendor specific svg marker */}
+            <CustomMapMarkerIcon category={vendor.category} />
+
             <Callout>
               <View style={styles.calloutContainer}>
                 <Text style={styles.calloutTitle}>{vendor.name}</Text>

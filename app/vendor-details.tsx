@@ -244,36 +244,56 @@ export default function VendorDetailsScreen() {
         const reviewIndex = vendor.reviews.findIndex(r => r.id === editingReview.id);
 
         if (reviewIndex !== -1) {
-           // 2. Create the updated review object for local state
-           const updatedReviewForState: Review = {
-                ...editingReview, 
-                rating,
-                comment,
-                date: new Date().toISOString(), 
-           };
-           // 3. Create a new array with the updated review
-           const updatedReviews = [...vendor.reviews];
-           updatedReviews[reviewIndex] = updatedReviewForState;
+          // 2. Create the updated review object for local state
+          const updatedReviewForState: Review = {
+            ...editingReview,
+            rating,
+            comment,
+            date: new Date().toISOString(),
+          };
+          // 3. Create a new array with the updated review
+          const updatedReviews = [...vendor.reviews];
+          updatedReviews[reviewIndex] = updatedReviewForState;
 
-           // 4. Recalculate average rating
-           const newAverageRating = calculateAverageRating(updatedReviews);
+          // 4. Recalculate average rating
+          const newAverageRating = calculateAverageRating(updatedReviews);
 
-           // 5. Update local vendor state
-           setVendor(prevVendor => prevVendor ? ({
-             ...prevVendor,
-             reviews: updatedReviews,
-             rating: newAverageRating
-           }) : null);
+          // 5. Update local vendor state
+          setVendor((prevVendor) =>
+            prevVendor
+              ? {
+                  ...prevVendor,
+                  reviews: updatedReviews,
+                  rating: newAverageRating,
+                }
+              : null
+          );
 
-           // 6. Update the vendor document's rating in Firestore
-           const vendorDocRef = doc(db, 'vendors', vendor.id);
-           await updateDoc(vendorDocRef, {
-             rating: newAverageRating
-           });
+          // 6. Update the vendor document's rating in Firestore only if changed
+          const currentVendorRating = vendor.rating;
+          const vendorDocRef = doc(db, "vendors", vendor.id);
+          // Check if the new average rating is actually different from the current one
+          const ratingChanged = newAverageRating !== currentVendorRating;
 
-           Alert.alert('Success', 'Your review has been updated!');
+          if (ratingChanged) {
+            console.log(
+              `Rating changed: ${currentVendorRating} -> ${newAverageRating}. Updating vendor doc.`
+            );
+            // Only attempt the update if the rating actually changed
+            await updateDoc(vendorDocRef, {
+              rating: newAverageRating,
+            });
+          } else {
+            console.log(
+              `Rating unchanged (${newAverageRating}). Skipping vendor doc rating update.`
+            );
+          }
+
+          Alert.alert("Success", "Your review has been updated!");
         } else {
-           console.error("Edited review not found in local state, might be out of sync.");
+          console.error(
+            "Edited review not found in local state, might be out of sync."
+          );
         }
 
       } catch (error) {

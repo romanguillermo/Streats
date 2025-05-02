@@ -5,6 +5,7 @@ export interface Vendor {
     name: string;
     description: string;
     cuisineType: string;
+    category?: string;
     location: {
       latitude: number;
       longitude: number;
