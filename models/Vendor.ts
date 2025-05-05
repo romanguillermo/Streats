@@ -11,7 +11,7 @@ export interface Vendor {
       longitude: number;
     };
     menu: { [categoryName: string]: MenuCategory };
-    photos: string[];
+    photos: VendorPhoto[];
     rating?: number | null;
     reviews: Review[];
     reviewCount?: number;
@@ -59,6 +59,13 @@ export interface Vendor {
     id: string;
     name: string;
     priceAdjustment?: number;
+  }
+
+  export interface VendorPhoto {
+    url: string;
+    storagePath: string; 
+    uploadedBy?: string; 
+    uploadedAt?: Timestamp;
   }
   
   export interface Review {

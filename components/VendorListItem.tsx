@@ -26,7 +26,7 @@ const VendorListItem: React.FC<VendorListItemProps> = ({
     >
         <View style={styles.vendorImageContainer}>
         {vendor.photos.length > 0 ? (
-            <Image source={{ uri: vendor.photos[0] }} style={styles.vendorImage} />
+            <Image source={{ uri: vendor.photos[0].url }} style={styles.vendorImage} />
         ) : (
             <View style={styles.placeholderImage}>
             <FontAwesome name="cutlery" size={30} color="#ccc" />

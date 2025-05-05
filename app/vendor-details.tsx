@@ -19,15 +19,15 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useFavorites } from '../context/FavoritesContext';
 import Colors from '../constants/colors';
-import { Vendor, MenuItem, isVendorOpen, getTodayHours, Review, formatTo12Hour } from '../models/Vendor';
+import { Vendor, MenuItem, isVendorOpen, VendorPhoto, getTodayHours, Review, formatTo12Hour } from '../models/Vendor';
 import ReviewModal from '../components/ReviewModal';
-import { doc, getDoc, DocumentSnapshot, DocumentData,
+import { doc, getDoc, onSnapshot, DocumentSnapshot, DocumentData,
   collection, addDoc, updateDoc, deleteDoc, serverTimestamp, 
-  getDocs, query, orderBy, Timestamp, increment, arrayUnion,
+  getDocs, query, orderBy, Timestamp, increment, arrayUnion, arrayRemove,
  } from 'firebase/firestore';
 import MenuCategorySection from '../components/MenuCategorySection';
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
 export default function VendorDetailsScreen() {
   const params = useLocalSearchParams();
@@ -46,106 +46,141 @@ export default function VendorDetailsScreen() {
   const [isImageViewVisible, setImageViewVisible] = useState(false); 
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState<VendorPhoto | null>(null); 
 
   const currentUser = auth.currentUser;
   const CATEGORY_ORDER = ["Food", "Drinks", "Add Ons"];
 
   useEffect(() => {
-    const fetchVendorAndReviews = async () => {
-      if (!id || typeof id !== 'string') {
-        setError("Invalid Vendor ID.");
-        setIsLoading(false);
-        return;
-      }
-  
-      setIsLoading(true);
-      setError(null);
-      setVendor(null); 
-      setUserReviews([]);
-  
-      try {
-        const vendorDocRef = doc(db, 'vendors', id); 
-        const docSnap = await getDoc(vendorDocRef);
-        let fetchedVendorData: Vendor | null = null;
+    if (!id || typeof id !== "string") {
+      setError("Invalid Vendor ID.");
+      setIsLoading(false);
+      return;
+    }
 
+    setIsLoading(true); 
+    setError(null);
+
+    const vendorDocRef = doc(db, "vendors", id);
+
+    // --- onSnapshot for real time updates of vendor document ---
+    const unsubscribeVendor = onSnapshot(
+      vendorDocRef,
+      async (docSnap) => {
+        // Make callback async
+        console.log(
+          "Vendor snapshot listener fired. Document exists:",
+          docSnap.exists()
+        );
         if (docSnap.exists()) {
           const data = docSnap.data();
-          fetchedVendorData = { 
+          // Map the latest vendor data
+          let currentVendorData: Vendor = {
             id: docSnap.id,
-            name: data.name || 'Unnamed Vendor',
-            description: data.description || '',
-            cuisineType: data.cuisineType || 'Unknown',
+            name: data.name || "Unnamed Vendor",
+            description: data.description || "",
+            cuisineType: data.cuisineType || "Unknown",
+            category: data.category,
             location: {
               latitude: data.location?.latitude || 0,
               longitude: data.location?.longitude || 0,
             },
-            menu: data.menu || {}, 
-            photos: data.photos || [],
+            menu: data.menu || {},
+            photos: data.photos || [], 
             rating: data.rating !== undefined ? data.rating : null,
-            reviews: [],
+            reviews: vendor?.reviews || [], 
+            reviewCount: data.reviewCount,
             operatingHours: data.operatingHours || {},
             contactInfo: data.contactInfo || {},
           };
-        } else {
-          console.log("No such vendor document!");
-          setError("Vendor not found.");
-          setIsLoading(false);
-          return; 
-        }
-        // --- Fetch Reviews Subcollection ---
-        const reviewsCollectionRef = collection(db, 'vendors', id, 'reviews');
-        const reviewsQuery = query(reviewsCollectionRef, orderBy('date', 'desc'));
-        const reviewsSnapshot = await getDocs(reviewsQuery);
 
-        const fetchedReviews: Review[] = [];
-        reviewsSnapshot.forEach((reviewDoc) => {
-          const reviewData = reviewDoc.data();
-          const reviewDate = reviewData.date instanceof Timestamp
-            ? reviewData.date.toDate().toISOString()
-            : new Date().toISOString(); 
+          // --- Fetch the associated reviews *inside* the snapshot callback ---
+          try {
+            const reviewsCollectionRef = collection(
+              db,
+              "vendors",
+              id,
+              "reviews"
+            );
+            const reviewsQuery = query(
+              reviewsCollectionRef,
+              orderBy("date", "desc")
+            );
+            const reviewsSnapshot = await getDocs(reviewsQuery);
 
-          fetchedReviews.push({
-            id: reviewDoc.id,
-            userId: reviewData.userId || '',
-            userName: reviewData.userName || 'Anonymous',
-            rating: reviewData.rating || 0,
-            comment: reviewData.comment || '',
-            date: reviewDate,
-          });
-        });
+            const fetchedReviews: Review[] = [];
+            reviewsSnapshot.forEach((reviewDoc) => {
+              const reviewData = reviewDoc.data();
+              const reviewDate =
+                reviewData.date instanceof Timestamp
+                  ? reviewData.date.toDate().toISOString()
+                  : new Date().toISOString();
+              fetchedReviews.push({
+                id: reviewDoc.id,
+                userId: reviewData.userId || "",
+                userName: reviewData.userName || "Anonymous",
+                rating: reviewData.rating || 0,
+                comment: reviewData.comment || "",
+                date: reviewDate,
+              });
+            });
 
-        // --- Update State ---
-        // Add fetched reviews to the vendor data
-        if (fetchedVendorData) {
-            fetchedVendorData.reviews = fetchedReviews;
-            setVendor(fetchedVendorData);
+            // Combine the latest vendor data with the just-fetched reviews
+            currentVendorData.reviews = fetchedReviews;
+
+            // Update user-specific reviews state based on the fetched reviews
             if (currentUser) {
-                 const userReviewList = fetchedReviews.filter(
-                    review => review.userId === currentUser.uid
-                 );
-                 setUserReviews(userReviewList);
+              const userReviewList = fetchedReviews.filter(
+                (review) => review.userId === currentUser.uid
+              );
+              setUserReviews(userReviewList); // Update userReviews state
+            } else {
+              setUserReviews([]); // Clear if user logged out
             }
+
+            // Update the main vendor state
+            setVendor(currentVendorData);
+            setError(null); // Clear error on successful update
+          } catch (reviewsError: any) {
+            console.error(
+              "Error fetching reviews subcollection inside snapshot:",
+              reviewsError
+            );
+            setError("Could not load reviews for this vendor.");
+            // Still update vendor state, but reviews array will be empty
+            currentVendorData.reviews = [];
+            setVendor(currentVendorData);
+            setUserReviews([]);
+          } finally {
+            // false only after vendor data AND review fetch attempt finish
+            setIsLoading(false);
+          }
+        } else {
+          // Vendor document doesn't exist or was deleted
+          console.log("Vendor document does not exist.");
+          setError("Vendor not found.");
+          setVendor(null);
+          setUserReviews([]);
+          setIsLoading(false);
         }
-      } catch (err: any) {
-        console.error("Error fetching vendor details:", err);
+      },
+      (error) => {
+        // Error callback for snapshot listener itself
+        console.error("Error listening to vendor document:", error);
         setError("Failed to load vendor details.");
-      } finally {
+        setVendor(null);
+        setUserReviews([]);
         setIsLoading(false);
       }
-    };
-  
-    fetchVendorAndReviews();
-  }, [id, currentUser]);
+    );
 
-  useEffect(() => {
-    // After loading the vendor, find user reviews
-    if (vendor && currentUser) {
-      const userReviewList = vendor.reviews.filter(
-        review => review.userId === currentUser.uid
-      );
-      setUserReviews(userReviewList);
-    }
-  }, [vendor, currentUser]);
+    // --- Return the unsubscribe function for cleanup ---
+    return () => {
+      console.log("Unsubscribing from vendor snapshot listener for ID:", id);
+      unsubscribeVendor();
+    };
+  }, [id, currentUser]);
 
   const toggleFavorite = useCallback(() => {
     if (vendor) {
@@ -538,20 +573,22 @@ export default function VendorDetailsScreen() {
     );
   }
 
-  const renderPhotoItem = ({ item, index }: { item: string, index: number }) => {
+  const renderPhotoItem = ({ item, index }: { item: VendorPhoto, index: number }) => {
     const handlePhotoPress = () => {
-      setSelectedImageUri(item); // Set the URI of the clicked image
-      setImageViewVisible(true); // Show the modal
+      setSelectedImageUri(item.url); 
+      setPhotoToDelete(item);
+      //setSelectedPhotoObject(item);
+      setImageViewVisible(true);
     };
     return (
       <TouchableOpacity style={styles.photoItemContainer} onPress={handlePhotoPress}>
-        <Image source={{ uri: item }} style={styles.photoItem} resizeMode="cover" />
+        <Image source={{ uri: item.url }} style={styles.photoItem} resizeMode="cover" />
       </TouchableOpacity>
     );
   };
 
   // Function to upload image and return URL
-  const uploadImageAsync = async (uri: string): Promise<string> => {
+  const uploadImageAsync = async (uri: string): Promise<{ downloadURL: string; storagePath: string }> => {
     if (!vendor) throw new Error("Vendor data is not available.");
 
     // Convert image URI to Blob
@@ -594,16 +631,15 @@ export default function VendorDetailsScreen() {
           (blob as any).close();
         },
         async () => {
-          // Handle successful uploads on complete
           console.log("Upload successful");
           (blob as any).close();
-          // Get the download URL
           try {
-             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-             resolve(downloadURL);
-          } catch (getUrlError){
-             console.error("Failed to get download URL:", getUrlError);
-             reject(getUrlError);
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            const storagePath = uploadTask.snapshot.ref.fullPath; 
+            resolve({ downloadURL, storagePath });
+          } catch (getUrlError) {
+            console.error("Failed to get download URL/Path:", getUrlError);
+            reject(getUrlError);
           }
         }
       );
@@ -611,28 +647,41 @@ export default function VendorDetailsScreen() {
   };
 
   // Function to update Firestore document
-  const updateVendorPhotos = async (imageUrl: string) => {
-     if (!vendor) return;
-     const vendorDocRef = doc(db, 'vendors', vendor.id);
-     try {
-         await updateDoc(vendorDocRef, {
-             photos: arrayUnion(imageUrl) // Add the new URL to the array
-         });
-         console.log('Firestore updated successfully with new photo URL.');
-         // Optimistically update local state to refresh UI immediately
-         setVendor(prevVendor => {
-             if (!prevVendor) return null;
-             return {
-                 ...prevVendor,
-                 photos: [...prevVendor.photos, imageUrl] // Add URL to local photos array
-             };
-         });
-         Alert.alert('Success', 'Photo added!');
-     } catch (error) {
-         console.error("Error updating vendor photos in Firestore:", error);
-         Alert.alert('Error', 'Could not save the photo reference.');
-         throw error;
-     }
+  const updateVendorPhotos = async (imageUrl: string, storagePath: string) => {
+    if (!vendor) return;
+    const vendorDocRef = doc(db, "vendors", vendor.id);
+
+    const newPhotoObject: VendorPhoto = {
+      url: imageUrl,
+      storagePath: storagePath,
+      // uploadedBy: currentUser?.uid,
+      // uploadedAt: serverTimestamp()
+    };
+
+    try {
+      await updateDoc(vendorDocRef, {
+        photos: arrayUnion(newPhotoObject),
+      });
+      console.log("Firestore updated successfully with new photo object.");
+      // Optimistically update local state to refresh UI immediately
+      /*
+      setVendor((prevVendor) => {
+        if (!prevVendor) return null;
+        const optimisticPhotoObject = {
+          ...newPhotoObject,
+        };
+        return {
+          ...prevVendor,
+          photos: [...prevVendor.photos, optimisticPhotoObject], // Add URL to local photos array
+        };
+      });
+      */
+      Alert.alert("Success", "Photo added!");
+    } catch (error) {
+      console.error("Error updating vendor photos in Firestore:", error);
+      Alert.alert("Error", "Could not save the photo reference.");
+      throw error;
+    }
   };
 
   // Function to handle the "Add Photo" button press
@@ -667,9 +716,10 @@ export default function VendorDetailsScreen() {
       setIsUploading(true);
       try {
         console.log("Starting upload for:", selectedImageUri);
-        const downloadURL = await uploadImageAsync(selectedImageUri);
+        const { downloadURL, storagePath } = await uploadImageAsync(selectedImageUri);
         console.log("Got download URL:", downloadURL);
-        await updateVendorPhotos(downloadURL);
+        console.log("Got storage Path:", storagePath);
+        await updateVendorPhotos(downloadURL, storagePath);
       } catch (error) {
         console.error("Error adding photo:", error);
       } finally {
@@ -678,6 +728,87 @@ export default function VendorDetailsScreen() {
     } else {
        console.log("No image assets found in picker result.");
     }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!photoToDelete || !vendor || isDeleting || !currentUser) {
+      console.log("Deletion conditions not met:", {
+        photoToDelete,
+        vendor,
+        isDeleting,
+        currentUser,
+      });
+      return;
+    }
+
+    Alert.alert(
+      "Delete Photo",
+      "Are you sure you want to permanently delete this photo?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setPhotoToDelete(null),
+        }, // Clear photoToDelete if cancelled
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            setImageViewVisible(false); // Close modal immediately
+
+            try {
+              // 1. Delete from Storage
+              console.log("Deleting from Storage:", photoToDelete.storagePath);
+              const storage = getStorage();
+              const storageRef = ref(storage, photoToDelete.storagePath);
+              await deleteObject(storageRef);
+              console.log("Successfully deleted from Storage.");
+
+              // 2. Delete from Firestore
+              console.log(
+                "Removing from Firestore photos array:",
+                photoToDelete
+              );
+              const vendorDocRef = doc(db, "vendors", vendor.id);
+              await updateDoc(vendorDocRef, {
+                photos: arrayRemove(photoToDelete),
+              });
+              console.log("Successfully removed from Firestore.");
+
+              Alert.alert("Success", "Photo deleted.");
+            } catch (error: any) {
+              console.error("Error deleting photo:", error);
+              if (error.code === "storage/object-not-found") {
+                Alert.alert(
+                  "Error",
+                  "Photo already deleted from storage, removing from list."
+                );
+                try {
+                  const vendorDocRef = doc(db, "vendors", vendor.id);
+                  await updateDoc(vendorDocRef, {
+                    photos: arrayRemove(photoToDelete),
+                  });
+                } catch (fsError) {
+                  console.error(
+                    "Error removing from Firestore after Storage error:",
+                    fsError
+                  );
+                }
+              } else {
+                Alert.alert(
+                  "Error",
+                  "Could not delete photo. Please try again."
+                );
+              }
+            } finally {
+              setIsDeleting(false);
+              setPhotoToDelete(null); // Clear selected photo
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -705,7 +836,7 @@ export default function VendorDetailsScreen() {
         <View style={styles.vendorImageContainer}>
           {vendor.photos && vendor.photos.length > 0 && vendor.photos[0] ? (
             <Image
-              source={{ uri: vendor.photos[0] }}
+              source={{ uri: vendor.photos[0].url }}
               style={styles.vendorImage}
             />
           ) : (
@@ -1038,7 +1169,9 @@ export default function VendorDetailsScreen() {
               <FlatList
                 data={vendor.photos}
                 renderItem={renderPhotoItem}
-                keyExtractor={(item, index) => `${item}-${index}`}
+                keyExtractor={(item, index) =>
+                  item.storagePath || `photo-${index}`
+                }
                 numColumns={3}
                 contentContainerStyle={styles.photosGrid}
               />
@@ -1078,7 +1211,6 @@ export default function VendorDetailsScreen() {
                 {isUploading ? "Uploading..." : "Add Photo"}
               </Text>
             </TouchableOpacity>
-
           </View>
         )}
       </View>
@@ -1099,13 +1231,20 @@ export default function VendorDetailsScreen() {
         visible={isImageViewVisible}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setImageViewVisible(false)}
+        onRequestClose={() => {
+          setImageViewVisible(false);
+          setPhotoToDelete(null);
+        }}
       >
         <View style={styles.imageModalBackground}>
           {/* Close button */}
           <TouchableOpacity
             style={styles.imageModalCloseButton}
-            onPress={() => setImageViewVisible(false)}
+            onPress={() => {
+              setImageViewVisible(false);
+              setPhotoToDelete(null); // Clear on close
+            }}
+            disabled={isDeleting}
           >
             <FontAwesome name="times" size={24} color="white" />
           </TouchableOpacity>
@@ -1118,6 +1257,28 @@ export default function VendorDetailsScreen() {
               resizeMode="contain"
             />
           )}
+
+          {/* Delete Button */}
+          {photoToDelete && currentUser && (
+            /* Optional: && currentUser.uid === photoToDelete.uploadedBy */ <TouchableOpacity
+              style={[
+                styles.deletePhotoButton,
+                isDeleting && styles.disabledButton,
+              ]}
+              onPress={handleDeletePhoto}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
+                <FontAwesome name="trash" size={22} color="white" />
+              )}
+              <Text style={styles.deleteButtonText}>
+                {isDeleting ? "Deleting..." : "Delete"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
         </View>
       </Modal>
     </View>
@@ -1443,10 +1604,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
-    justifyContent: 'center', // Center content
-    marginTop: 20, // Space above button
-    marginBottom: 20, // Space below button
-    alignSelf: 'center', // Center button horizontally
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 20, 
+    alignSelf: 'center', 
   },
   uploadPhotoButtonText: {
     color: 'white',
@@ -1485,5 +1646,22 @@ imageModalCloseButton: {
 fullScreenImage: {
   width: '100%',
   height: '85%',
+},
+deletePhotoButton: {
+  position: 'absolute',
+  bottom: 30,
+  alignSelf: 'center',
+  backgroundColor: 'rgba(255, 0, 0, 0.7)',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 25,
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+deleteButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+  marginLeft: 8,
+  fontSize: 16,
 },
 });
