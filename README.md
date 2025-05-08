@@ -17,3 +17,16 @@ Streats is a mobile app designed to make finding LA's best street food (food tru
 - **Frontend:** React Native w/ Expo
 - **Backend:** Firebase  
 - **Database:** Firestore
+
+---
+<br>
+<p float="left">
+  <img src="./assets/images/streatswelcome.png" width="200" />
+  <img src="./assets/images/streatsmapvendorview.png" width="200" />
+  <img src="./assets/images/streatsvendordetailsmenu.png" width="200" />
+  <img src="./assets/images/streatsvendordetailsinfo.png" width="200" />
+  <img src="./assets/images/streatsvendordetailsreviews.png" width="200" />
+  <img src="./assets/images/streatsvendordetailsphotos.png" width="200" />
+  <img src="./assets/images/streatsvendorslist.png" width="200" />
+  <img src="./assets/images/streatsprofiletab.png" width="200" />
+</p>

@@ -26,8 +26,8 @@ const CustomMapMarkerIcon: React.FC<CustomMapMarkerIconProps> = ({
         return <TacoIcon width={size} height={size} fill={color} />;
       case 'Elotero':
       case 'Elote Stand': // Add variations
-        return <EloteIcon width={size+8} height={size} fill={color} />;
-      // Add more categories (Fruit Cart, Hot Dog, etc.)
+        return <EloteIcon width={size+16} height={size} fill={color} />;
+      // More categories (Fruit Cart, Hot Dog, etc.)
       // case 'Fruit Cart':
       //   return <FruitIcon width={size} height={size} fill={color} />;
       default:

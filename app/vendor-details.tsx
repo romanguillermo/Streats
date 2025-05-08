@@ -698,8 +698,8 @@ export default function VendorDetailsScreen() {
     // 2. Launch Image Picker
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, // Optional: Allow basic editing
-      aspect: [4, 3], // Optional: Enforce aspect ratio
+      allowsEditing: true, // Allow basic editing
+      aspect: [4, 3], // Enforce aspect ratio
       quality: 0.7, // Reduce quality slightly to save storage/bandwidth (0 to 1)
     });
 
